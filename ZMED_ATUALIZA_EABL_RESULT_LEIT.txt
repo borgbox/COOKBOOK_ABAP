@@ -1,0 +1,46 @@
+function zmed_atualiza_eabl_result_leit.
+*"----------------------------------------------------------------------
+*"*"Interface local:
+*"  IMPORTING
+*"     REFERENCE(I_RESULTADO_LEITURA) TYPE  ZMED_RESULTADO_LEITURA
+*"     REFERENCE(I_ABLBELNR) TYPE  ABLBELNR
+*"  EXPORTING
+*"     REFERENCE(E_STATUS) TYPE  ZSTATUS
+*"----------------------------------------------------------------------
+
+  data: weabl like eabl,
+        old_weabl like eabl.
+
+  call function 'ISU_DB_EABL_SINGLE'
+    exporting
+      x_ablbelnr = i_ablbelnr
+      x_actual   = 'X'
+    importing
+      y_eabl     = weabl
+    exceptions
+      not_found  = 1
+      others     = 2.
+  if sy-subrc <> 0.
+    e_status = 'E'.
+  endif.
+
+  check e_status <> 'E'.
+
+  old_weabl = weabl.
+  weabl-zzresultado_leitura = i_resultado_leitura.
+  call function 'ISU_DB_EABL_UPDATE'
+    exporting
+      x_eabl            = weabl
+      x_old_eabl        = old_weabl
+      x_upd_mode        = 'U'
+      x_change_document = 'X'
+    exceptions
+      update_incomplete = 1
+      input_error       = 2
+      others            = 3.
+  if sy-subrc eq 0.
+    commit work and wait.
+    e_status = 'S'.
+  endif.
+
+endfunction.

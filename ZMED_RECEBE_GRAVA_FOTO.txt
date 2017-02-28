@@ -1,0 +1,166 @@
+function zmed_recebe_grava_foto.
+*"----------------------------------------------------------------------
+*"*"Interface local:
+*"  IMPORTING
+*"     REFERENCE(I_ABLBELNR) TYPE  ABLBELNR
+*"     REFERENCE(I_CONTEUDO_ARQUIVO) TYPE  XSTRING
+*"     REFERENCE(_ICF_DATA) TYPE  ZICF_HANDLER_DATA
+*"     REFERENCE(I_NOME_ARQUIVO) TYPE  STRING
+*"  EXPORTING
+*"     REFERENCE(E_STATUS) TYPE  ZSTATUS
+*"----------------------------------------------------------------------
+  data: l_arquivo_xstring      type xstring,
+        l_conteudo_json_string type string,
+        l_tamanho              type i,
+        lt_conteudo_arquivo    type standard table of solix-line,
+        l_zmed_coletor_img     type zmed_coletor_img.
+
+  data l_zmed_resultado_leitura type zmed_resultado_leitura.
+
+  data: l_solix       type solix-line,
+        l_caminho_arq type string,
+        l_nome_arquivo type string,
+        l_nome_arquivo_final type string,
+        l_caminho_raiz type btctext80.
+
+  data: l_nome_file type string,
+        l_extensao  type string.
+  l_nome_arquivo = cl_http_utility=>unescape_url(
+                  escaped   = i_nome_arquivo ).
+
+  data ltvarv_low type tvarvc-low.
+
+  select single low
+         from tvarvc
+           into ltvarv_low
+             where name = 'ZMED_CAMINHO_FOTOS'.
+  if sy-subrc <> 0.
+    e_status = 'E'.
+  endif.
+
+  check e_status <> 'E'.
+
+  l_conteudo_json_string = _icf_data-server->request->get_cdata( ).
+
+  call function 'SCMS_BASE64_DECODE_STR'
+    exporting
+      input  = l_conteudo_json_string
+    importing
+      output = l_arquivo_xstring.
+  if sy-subrc <> 0.
+    e_status = 'E'.
+  endif.
+
+  call function 'SCMS_XSTRING_TO_BINARY'
+    exporting
+      buffer     = l_arquivo_xstring
+    tables
+      binary_tab = lt_conteudo_arquivo.
+
+
+  call function 'CRM_EMAIL_SPLIT_FILENAME'
+    exporting
+      iv_path      = l_nome_arquivo
+    importing
+      ev_filename  = l_nome_file
+      ev_extension = l_extensao.
+
+
+  l_nome_arquivo_final = l_nome_file && `.` && l_extensao.
+
+*  CALL FUNCTION 'CH_SPLIT_FILENAME'
+*    EXPORTING
+*      complete_filename = l_nome_arquivo
+*    IMPORTING
+*      name_with_ext     = l_nome_arquivo_final.
+
+  l_caminho_raiz = ltvarv_low
+                    && `\`
+                    && sy-datum(4)
+                    && `\` && sy-datum+4(2)
+                    && `\` && sy-datum+6(2)
+                    && `\` .
+
+*  CALL FUNCTION 'BRAN_DIR_CREATE'
+*    EXPORTING
+*      dirname              = l_caminho_raiz
+** EXCEPTIONS
+**   ALREADY_EXISTS       = 1
+**   CANT_CREATE          = 2
+**   OTHERS               = 3
+*            .
+*  IF sy-subrc <> 0.
+** Implement suitable error handling here
+*  ENDIF.
+
+
+  data: l_com type rlgrap-filename.
+
+  call function 'PFL_CHECK_DIRECTORY'
+    exporting
+      directory         = l_caminho_raiz
+    exceptions
+      pfl_dir_not_exist = 1.
+  if sy-subrc eq 1.
+    concatenate 'cmd /c mkdir' l_caminho_raiz into l_com separated by
+space.
+    call 'SYSTEM' id 'COMMAND' field l_com.
+  endif.
+
+  l_caminho_arq = l_caminho_raiz && l_nome_arquivo_final.
+
+  open dataset l_caminho_arq for output in binary mode.
+  if sy-subrc eq 0.
+    loop at lt_conteudo_arquivo into l_solix.
+      transfer l_solix to l_caminho_arq.
+    endloop.
+  else.
+    e_status = 'E'.
+  endif.
+
+  close dataset l_caminho_arq.
+
+  check e_status <> 'E'.
+*** Atualiza/Cria registro na tabela que associa ordem com foto e na
+
+  "EABL
+
+  l_zmed_resultado_leitura = l_nome_arquivo_final.
+  call function 'ZMED_ATUALIZA_EABL_RESULT_LEIT'
+    exporting
+      i_resultado_leitura = l_zmed_resultado_leitura
+      i_ablbelnr          = i_ablbelnr
+    importing
+      e_status            = e_status.
+
+  check e_status <> 'E'.
+
+  "ZMED_COLETOR_IMG
+  l_zmed_coletor_img-ablbelnr = i_ablbelnr.
+  l_zmed_coletor_img-nome_arquivo = l_nome_arquivo_final.
+  l_zmed_coletor_img-caminho_arquivo = l_caminho_arq.
+
+  modify zmed_coletor_img from l_zmed_coletor_img.
+  if sy-subrc eq 0.
+    commit work and wait.
+    e_status = 'S'.
+  else.
+    rollback work.
+    e_status = 'E'.
+  endif.
+
+*  TRY .
+*      cl_gui_frontend_services=>gui_download(
+*        EXPORTING
+*          bin_filesize              = l_tamanho
+*          filename                  = 'C:Teste.jpg'
+*          filetype                  = 'BIN'
+*        CHANGING
+*          data_tab                  = lt_conteudo_arquivo.
+*    CATCH cx_root.
+*      e_status = 'E'.
+*  ENDTRY.
+
+
+
+endfunction.

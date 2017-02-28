@@ -1,0 +1,97 @@
+function zmed_baixa_apresenta_imagem.
+*"----------------------------------------------------------------------
+*"*"Interface local:
+*"  IMPORTING
+*"     REFERENCE(I_ABLBELNR) TYPE  ABLBELNR OPTIONAL
+*"     REFERENCE(I_CAMINHO_ARQUIVO) TYPE  /IPRO/FILENAME OPTIONAL
+*"----------------------------------------------------------------------
+
+  data: l_arquivo_dest    type char255 value 'c:\Temp\Coletor',
+        l_doc             type string,
+        l_nome_file       type string,
+        l_extensao        type string,
+        l_caminho_str     type string,
+        l_arquivo_caminho type /ipro/filename,
+        l_zmed_coletor_caminho type zmed_coletor_img-caminho_arquivo.
+
+  data:
+    l_data type standard table of tbl1024,
+    l_size type i.
+
+  select single caminho_arquivo
+     from zmed_coletor_img
+       into l_zmed_coletor_caminho
+        where ablbelnr = i_ablbelnr.
+  if sy-subrc eq 0.
+    l_arquivo_caminho = l_zmed_coletor_caminho.
+  else.
+    l_arquivo_caminho = i_caminho_arquivo.
+  endif.
+
+  check l_arquivo_caminho is not initial.
+
+  call function 'SCMS_UPLOAD'
+    exporting
+      filename = l_arquivo_caminho
+      binary   = 'X'
+      frontend = ' '
+    importing
+      filesize = l_size
+    tables
+      data     = l_data
+    exceptions
+      error    = 1
+      others   = 2.
+  if sy-subrc <> 0.
+    message id sy-msgid type sy-msgty number sy-msgno
+            with sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4
+            raising error_file.
+  endif.
+
+  "Busca nome Arquivo
+  l_caminho_str = l_arquivo_caminho.
+  call function 'CRM_EMAIL_SPLIT_FILENAME'
+    exporting
+      iv_path      = l_caminho_str
+    importing
+      ev_filename  = l_nome_file
+      ev_extension = l_extensao.
+
+  l_arquivo_dest = l_arquivo_dest && `\` && l_nome_file && `.` &&
+l_extensao.
+
+  call function 'SCMS_DOWNLOAD'
+    exporting
+      filename = l_arquivo_dest
+      filesize = l_size
+      binary   = 'X'
+      frontend = 'X'
+    tables
+      data     = l_data
+    exceptions
+      error    = 1
+      others   = 2.
+  if sy-subrc <> 0.
+    message id sy-msgid type sy-msgty number sy-msgno
+            with sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4
+            raising error_file.
+  endif.
+  if sy-subrc <> 0.
+    message id sy-msgid type sy-msgty number sy-msgno with sy-msgv1
+    sy-msgv2
+    sy-msgv3
+    sy-msgv4.
+  endif.
+
+  l_doc = l_arquivo_dest.
+
+  cl_gui_frontend_services=>execute(
+    exporting
+      document               = l_doc ).
+  if sy-subrc <> 0.
+    message id sy-msgid type sy-msgty number sy-msgno
+               with sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+  endif.
+
+
+endfunction.
