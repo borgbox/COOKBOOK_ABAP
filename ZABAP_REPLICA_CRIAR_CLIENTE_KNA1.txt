@@ -1,0 +1,186 @@
+﻿* 01 - Carrega dados do cliente de um ambiente e chama a RFC para criação em outro	
+  ls_header_in-object_instance-kunnr = <fbut000_new>-partner.
+  ls_header_in-object_task = cvi_ei_api_map_structure=>gc_modify.
+  ls_customer_in-header    = ls_header_in.
+
+  APPEND ls_customer_in TO ls_customers_in-customers.
+  "Carrega dados 	
+  CALL METHOD cmd_ei_api_extract=>get_data
+    EXPORTING
+      is_master_data = ls_customers_in
+    IMPORTING
+      es_master_data = ls_customers_out.
+	  
+  "Chamada RFC para replicação  
+  CALL FUNCTION 'ZPM_SINC_CLIENTE_CCS_ECC' DESTINATION l_rfc_ecc
+    EXPORTING
+      i_obj_customer = ls_customers_out
+    IMPORTING
+      e_status       = e_status.
+
+  "e_status = 0 - Sucesso
+  "e_status = 1 - Erro
+
+02 - Código da RFC  
+FUNCTION zpm_sinc_cliente_ccs_ecc.
+*"----------------------------------------------------------------------
+*"*"Interface local:
+*"  IMPORTING
+*"     VALUE(I_OBJ_CUSTOMER) TYPE  CMDS_EI_MAIN
+*"  EXPORTING
+*"     VALUE(E_STATUS) TYPE  CHAR01
+*"----------------------------------------------------------------------
+
+
+  DATA: ls_masterdata   TYPE cmds_ei_main,
+        ls_customers    TYPE  cmds_ei_extern,
+        lt_customers    TYPE cmds_ei_extern_t,
+* for Exportparameters of Methode
+        ls_master_data_correct   TYPE  cmds_ei_main,
+        ls_message_correct       TYPE  cvis_message,
+        ls_master_data_defective TYPE  cmds_ei_main,
+        ls_message_defective     TYPE  cvis_message,
+* for Transfer Communication data
+  ls_phone_main TYPE cvis_ei_cvi_phone,
+  ls_phone      TYPE cvis_ei_phone_str,
+  lt_phone      TYPE cvis_ei_phone_t,
+  ls_fax_main TYPE cvis_ei_cvi_fax,
+  ls_fax TYPE cvis_ei_fax_str,
+  lt_fax TYPE cvis_ei_fax_t,
+  ls_mail_main TYPE cvis_ei_cvi_smtp,
+  ls_mail TYPE cvis_ei_smtp_str,
+  lt_mail TYPE cvis_ei_smtp_t.
+* Customer number (in case of external creating of numbers)
+  ls_customers-header-object_instance-kunnr = '7000007442'.
+* Mark CREATE
+  ls_customers-header-object_task = 'I'.
+* Fill central data like Customer Account Group
+  ls_customers-central_data-central-data-ktokd = 'CCCS'.
+*  ls_customers-central_data-central-data-KUKLA = '01'.
+  ls_customers-central_data-central-data-stcd2 = '26463063428'.
+  IF ls_customers-central_data-central-data-stcd2 IS NOT INITIAL.
+    ls_customers-central_data-central-data-stkzn = 'X'.
+  ELSE.
+    CLEAR ls_customers-central_data-central-data-stkzn.
+  ENDIF.
+*  ls_customers-central_data-central-data-niels = '03'.
+  ls_customers-central_data-central-datax-ktokd = 'X'.
+*  ls_customers-central_data-central-datax-KUKLA = 'X'.
+  ls_customers-central_data-central-datax-stcd2 = 'X'.
+*  ls_customers-central_data-central-datax-stcd1 = 'X'.
+*  ls_customers-central_data-central-datax-niels = 'X'.
+* now address data
+  ls_customers-central_data-address-task = 'I'.
+* if the FROM date should be filled here , it has also to be filled in all other used structures
+  ls_customers-central_data-address-postal-data-from_date = sy-datum.
+* NAME and SORT1 are Mandatory fields
+  ls_customers-central_data-address-postal-data-name = 'pablo'.
+  ls_customers-central_data-address-postal-data-sort1  = 'pablo'.
+  ls_customers-central_data-address-postal-data-name_2 = 'tapia'.
+  ls_customers-central_data-address-postal-data-city  = '2'."city1
+  ls_customers-central_data-address-postal-data-postl_cod1  = '31080-090'.
+  ls_customers-central_data-address-postal-data-street = 'RUA 2'.
+  ls_customers-central_data-address-postal-data-country = 'BR'.
+  ls_customers-central_data-address-postal-data-langu = 'P'.
+*  ls_customers-central_data-address-postal-data-title = '0002'.
+  ls_customers-central_data-address-postal-data-district = 'RIACHO'."city2
+  ls_customers-central_data-address-postal-data-region = 'MG'.          "regio
+*ls_customers-central_data-address-postal-data-TRANSPZONE = 'Z1340'.
+* and now mark all used fields
+  ls_customers-central_data-address-postal-datax-from_date = 'X'.
+  ls_customers-central_data-address-postal-datax-to_date = 'X'.
+  ls_customers-central_data-address-postal-datax-name = 'X'.
+  ls_customers-central_data-address-postal-datax-sort1 = 'X'.
+  ls_customers-central_data-address-postal-datax-name_2 = 'X'.
+  ls_customers-central_data-address-postal-datax-city = 'X'.
+  ls_customers-central_data-address-postal-datax-postl_cod1 = 'X'.
+  ls_customers-central_data-address-postal-datax-street = 'X'.
+  ls_customers-central_data-address-postal-datax-house_no = 'X'.
+  ls_customers-central_data-address-postal-datax-country = 'X'.
+  ls_customers-central_data-address-postal-datax-langu = 'X'.
+*  ls_customers-central_data-address-postal-datax-title = 'X'.
+  ls_customers-central_data-address-postal-datax-district = 'X'.
+  ls_customers-central_data-address-postal-datax-region = 'X'.
+*  ls_customers-central_data-address-postal-datax-transpzone = 'X'.
+
+* fill telephon data
+*  ls_phone-contact-task = 'I'.
+*  ls_phone-contact-data-telephone = '69792'.
+*  ls_phone-contact-data-country = 'CL'.
+*  ls_phone-contact-data-std_no = 'X'.
+*  ls_phone-contact-data-r_3_user = '1'.
+*  ls_phone-contact-data-home_flag = 'X'.
+*  ls_phone-contact-data-caller_no  = '69792'.
+*  ls_phone-contact-data-consnumber = '001'.
+*  ls_phone-contact-datax-country = 'X'.
+*  ls_phone-contact-datax-telephone = 'X'.
+*  ls_phone-contact-datax-std_no = 'X'.
+*  ls_phone-contact-datax-r_3_user = 'X'.
+*  ls_phone-contact-datax-home_flag = 'X'.
+*  ls_phone-contact-datax-caller_no  = 'X'.
+*  ls_phone-contact-datax-consnumber = 'X'.
+*  APPEND ls_phone TO lt_phone.
+
+*  ls_phone-contact-task = 'I'.
+*  ls_phone-contact-data-telephone = '9843'.
+*  ls_phone-contact-data-country = 'CL'.
+*  ls_phone-contact-data-std_no = ''.
+*  ls_phone-contact-data-r_3_user = '3'.
+*  ls_phone-contact-data-home_flag = ''.
+*  ls_phone-contact-data-caller_no  = '9843'.
+*  ls_phone-contact-data-consnumber = '002'.
+*  ls_phone-contact-datax-country = 'X'.
+*  ls_phone-contact-datax-telephone = 'X'.
+*  ls_phone-contact-datax-std_no = 'X'.
+*  ls_phone-contact-datax-r_3_user = 'X'.
+*  ls_phone-contact-datax-home_flag = 'X'.
+*  ls_phone-contact-datax-caller_no  = 'X'.
+*  ls_phone-contact-datax-consnumber = 'X'.
+*  APPEND ls_phone TO lt_phone.
+*  ls_phone_main-phone = lt_phone.
+
+* fill fax data
+*  ls_fax-contact-task = 'I'.
+*  ls_fax-contact-data-fax = '84380'.
+*  ls_fax-contact-data-country = 'CL'.
+*  ls_fax-contact-data-home_flag = 'X'.
+*  ls_fax-contact-data-consnumber = '001'.
+*  ls_fax-contact-data-std_no = 'X'.
+*  ls_fax-contact-data-sender_no = '84380'.
+*  ls_fax-contact-data-std_no  = 'X'.
+*
+*  ls_fax-contact-datax-fax = 'X'.
+*  ls_fax-contact-datax-country = 'X'.
+*  ls_fax-contact-datax-home_flag = 'X'.
+*  ls_fax-contact-datax-consnumber = 'X'.
+*  ls_fax-contact-datax-std_no = 'X'.
+*  ls_fax-contact-datax-sender_no = 'X'.
+*  ls_fax-contact-datax-std_no  = 'X'.
+*  APPEND ls_fax TO lt_fax.
+  ls_fax_main-fax = lt_fax.
+* fill mail data
+  ls_mail-contact-task = 'I'.
+  ls_mail-contact-data-e_mail = 'pepe@gmail.com'.
+  ls_mail-contact-datax-e_mail = 'X'.
+  APPEND ls_mail TO lt_mail.
+  ls_mail_main-smtp = lt_mail.
+  ls_customers-central_data-address-communication-smtp = ls_mail_main.
+  ls_customers-central_data-address-communication-phone = ls_phone_main .
+  ls_customers-central_data-address-communication-fax = ls_fax_main.
+  APPEND ls_customers TO lt_customers.
+  ls_masterdata-customers = lt_customers.
+
+  cmd_ei_api=>maintain_bapi(
+  EXPORTING
+      iv_collect_messages      = 'X'
+      is_master_data           = ls_masterdata
+  IMPORTING
+      es_master_data_correct   = ls_master_data_correct
+      es_message_correct       = ls_message_correct
+      es_master_data_defective = ls_master_data_defective
+      es_message_defective     = ls_message_defective ).
+
+  CALL FUNCTION 'BAPI_TRANSACTION_COMMIT' .
+
+
+ENDFUNCTION.
