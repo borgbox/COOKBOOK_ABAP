@@ -1,0 +1,56 @@
+*&---------------------------------------------------------------------*
+*& Report  ZABAP_REPORT_OO
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT ZABAP_REPORT_OO.
+
+SELECTION-SCREEN: BEGIN OF SCREEN 0200.
+SELECTION-SCREEN: END OF SCREEN 0200.
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_report DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS lcl_report DEFINITION.
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS main.
+
+  PRIVATE SECTION.
+
+    CLASS-DATA lo_report TYPE REF TO lcl_report.
+
+ENDCLASS.                    "lcl_report DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_report IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS lcl_report IMPLEMENTATION.
+
+  METHOD main.
+
+    CALL SCREEN 0200.
+
+    CHECK sy-subrc EQ 0.
+
+    CREATE OBJECT lo_report.
+
+    "... minha lógica e meus métodos
+
+    lcl_report=>main( ).
+
+  ENDMETHOD.                    "main
+
+ENDCLASS.                    "lcl_report IMPLEMENTATION
+
+START-OF-SELECTION.
+
+  lcl_report=>main( ).
