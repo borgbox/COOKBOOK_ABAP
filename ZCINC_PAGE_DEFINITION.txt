@@ -1,0 +1,53 @@
+<html>
+<head>
+<title>Google Maps</title>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+<script type="text/javascript" src="http://maps.google.com/maps/api/js?v=3sensor=true"></script>
+  <script type="text/javascript" language="javascript">
+  var map = null;
+  var latitude;
+  var longitude;
+
+
+  function getLocation() {
+     showPosition();
+}
+function showPosition() {
+     latitude =  <var_latitude> ;
+     longitude = <var_longitude> ;
+}
+
+   function chamaMapa()
+   {
+
+     getLocation();
+     //DEFINE AS COORDENADAS DA RUA OU AVENIDA
+     var latlng = new google.maps.LatLng(latitude, longitude); //
+
+         var myOptions = {
+         zoom: 19,
+         center: latlng,
+         mapTypeId: google.maps.MapTypeId.SATELLITE
+       };
+
+
+     //CRIANDO O MAPA
+       map = new google.maps.Map( document.getElementById("map_canvas") , myOptions );
+       map.setCenter( new google.maps.LatLng(latitude,latitude));
+
+    //Criano a marcação no MAPA
+       map.setZoom(23);
+       markerInicio = new google.maps.Marker({position: latlng,map: map,title:"<label_marker>: <marker_value>",animation: google.maps.Animation.DROP});
+       map.setCenter(latlng);
+
+
+   }
+
+   </script>
+
+ </head>
+<body onload="chamaMapa();">
+
+<div id="map_canvas" style="width: 100%; height: 500px"></div>
+</body>
+</html>

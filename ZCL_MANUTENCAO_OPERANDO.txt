@@ -1,0 +1,288 @@
+*----------------------------------------------------------------------*
+*       CLASS ZCL_MANUTENCAO_OPERANDO DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+class zcl_manutencao_operando definition
+  public
+  final
+  create public .
+
+public section.
+
+  class-methods ajusta_operando
+    importing
+      !i_anlage type anlage
+      !i_operand type e_operand
+      !i_ab type abzeitsch
+      !i_bis type biszeitsch
+      !i_wert type e_wert1 optional
+      !i_integer_value type integer4 optional
+      !i_factor_value type e_factor optional
+      !i_data_validacao type dats
+      !i_tipo_operando type zfat_e_tipo_operando default 'I'
+    exporting
+      !e_status type zstatus_servico
+      !e_msg type natxt .
+  protected section.
+  private section.
+
+    class-methods verificar_operacao
+      importing
+        !i_anlage type anlage
+        !i_operand type e_operand
+        !i_data_validacao type dats
+      returning
+        value(r_operacao) type zfat_e_operacao .
+endclass.
+
+
+
+class zcl_manutencao_operando implementation.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Public Method ZCL_MANUTENCAO_OPERANDO=>AJUSTA_OPERANDO
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_ANLAGE                       TYPE        ANLAGE
+* | [--->] I_OPERAND                      TYPE        E_OPERAND
+* | [--->] I_AB                           TYPE        ABZEITSCH
+* | [--->] I_BIS                          TYPE        BISZEITSCH
+* | [--->] I_WERT                         TYPE        E_WERT1(optional)
+* | [--->] I_INTEGER_VALUE                TYPE        INTEGER4(optional)
+* | [--->] I_FACTOR_VALUE                 TYPE        E_FACTOR(optional)
+* | [--->] I_DATA_VALIDACAO               TYPE        DATS
+* | [--->] I_TIPO_OPERANDO                TYPE        ZFAT_E_TIPO_OPERANDO (default ='I')
+* | [<---] E_STATUS                       TYPE        ZSTATUS_SERVICO
+* | [<---] E_MSG                          TYPE        NATXT
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method ajusta_operando.
+
+    data: ls_auto   type isu01_instln_auto,
+          l_modo    type regen-wmode.
+
+    field-symbols: <auto>           type isu20_flag_auto,
+                   <iquant>         type isu20_quant_auto,
+                   <ivalue>         type isu20_quant_value_auto,
+                   <iinteger>       type isu20_integer_auto,
+                   <iinteger_value> type isu20_integer_value_auto,
+                   <ifactor>        type isu20_factor_auto,
+                   <ifactor_value>  type isu20_factor_value_auto.
+
+    call function 'ISU_S_INSTLN_PROVIDE'
+      exporting
+        x_anlage        = i_anlage
+        x_keydate       = sy-datum
+        x_wmode         = '2'
+        x_prorate       = 'X'
+        x_no_dialog     = 'X'
+      importing
+        y_auto          = ls_auto
+      exceptions
+        not_found       = 1
+        invalid_keydate = 2
+        foreign_lock    = 3
+        not_authorized  = 4
+        invalid_wmode   = 5
+        general_fault   = 6
+        others          = 7.
+    if sy-subrc = 0.
+*** ALTERA OPERANDO
+      if verificar_operacao(
+          i_anlage   = i_anlage
+          i_operand  = i_operand
+          i_data_validacao = i_data_validacao ) = 'U'.
+
+        case i_tipo_operando.
+
+          when 'Q'.
+
+            read table ls_auto-facts-facts_auto-iquant
+            assigning <iquant>
+            with key operand = i_operand.
+            if sy-subrc eq 0.
+              read table <iquant>-ivalue
+              assigning <ivalue>
+               with key ab = i_ab bis = i_bis.
+              if sy-subrc eq 0.
+                <ivalue>-menge = i_wert.
+              else.
+                e_status = 'E'.
+                e_msg = text-001.
+              endif.
+            else.
+              e_status = 'E'.
+              e_msg = text-002.
+            endif.
+
+          when 'I'.
+
+            read table ls_auto-facts-facts_auto-iinteger
+            assigning <iinteger>
+            with key operand = i_operand.
+            if sy-subrc eq 0.
+              read table <iinteger>-ivalue
+              assigning <iinteger_value>
+               with key ab = i_ab bis = i_bis.
+              if sy-subrc eq 0.
+                <iinteger_value>-integer4 = i_integer_value.
+              else.
+                e_status = 'E'.
+                e_msg = text-001.
+              endif.
+            else.
+              e_status = 'E'.
+              e_msg = text-002.
+            endif.
+
+          when 'F'.
+
+            read table ls_auto-facts-facts_auto-ifactor
+            assigning <ifactor>
+            with key operand = i_operand.
+            if sy-subrc eq 0.
+              read table <ifactor>-ivalue
+              assigning <ifactor_value>
+               with key ab = i_ab bis = i_bis.
+              if sy-subrc eq 0.
+                <ifactor_value>-factor = i_factor_value.
+              else.
+                e_status = 'E'.
+                e_msg = text-001.
+              endif.
+            else.
+              e_status = 'E'.
+              e_msg = text-002.
+            endif.
+
+        endcase.
+
+*** CRIA OPERANDO
+      else.
+
+        case i_tipo_operando.
+
+          when 'Q'.
+
+            read table ls_auto-facts-facts_auto-iquant
+            assigning <iquant>
+            with key operand = i_operand.
+            if sy-subrc <> 0."Se não existir inclui
+              append initial line to ls_auto-facts-facts_auto-iquant assigning <iquant>.
+              <iquant>-operand = i_operand.
+              <iquant>-auto_use = 'X'.
+            endif.
+
+            append initial line to <iquant>-ivalue assigning <ivalue>.
+            <ivalue>-ab = i_ab.
+            <ivalue>-bis = i_bis.
+            <ivalue>-menge = i_wert.
+
+          when 'I'.
+
+            read table ls_auto-facts-facts_auto-iinteger
+            assigning <iinteger>
+            with key operand = i_operand.
+            if sy-subrc <> 0."Se não existir inclui
+              append initial line to ls_auto-facts-facts_auto-iinteger assigning <iinteger>.
+              <iinteger>-operand = i_operand.
+              <iinteger>-auto_use = 'X'.
+            endif.
+
+            append initial line to <iinteger>-ivalue assigning <iinteger_value>.
+            <iinteger_value>-ab = i_ab.
+            <iinteger_value>-bis = i_bis.
+            <iinteger_value>-integer4 = i_integer_value.
+
+          when 'F'.
+
+            read table ls_auto-facts-facts_auto-ifactor
+            assigning <ifactor>
+            with key operand = i_operand.
+            if sy-subrc <> 0."Se não existir inclui
+              append initial line to ls_auto-facts-facts_auto-ifactor assigning <ifactor>.
+              <ifactor>-operand = i_operand.
+              <ifactor>-auto_use = 'X'.
+            endif.
+
+            append initial line to <ifactor>-ivalue assigning <ifactor_value>.
+            <ifactor_value>-ab = i_ab.
+            <ifactor_value>-bis = i_bis.
+            <ifactor_value>-factor = i_factor_value.
+
+        endcase.
+
+      endif.
+
+      check e_status <> 'E'.
+
+      ls_auto-contr-use-facts  = 'X'.
+      ls_auto-contr-use-okcode = 'X'.
+      ls_auto-contr-okcode     = 'SAVE'.
+      call function 'ISU_S_INSTLN_CHANGE'
+        exporting
+          x_anlage       = i_anlage
+          x_keydate      = sy-datum
+          x_prorate      = 'X'
+          x_upd_online   = 'X'
+          x_no_dialog    = 'X'
+          x_auto         = ls_auto
+        exceptions
+          not_found      = 1
+          foreign_lock   = 2
+          not_authorized = 3
+          cancelled      = 4
+          input_error    = 5
+          general_fault  = 6
+          others         = 7.
+      if sy-subrc eq 0.
+        commit work and wait.
+        e_status = 'S'.
+      else.
+        e_status = 'E'.
+      endif.
+    else.
+      e_status = 'E'.
+    endif.
+
+    call function 'MESSAGE_TEXT_BUILD'
+      exporting
+        msgid               = sy-msgid
+        msgnr               = sy-msgno
+        msgv1               = sy-msgv1
+        msgv2               = sy-msgv2
+        msgv3               = sy-msgv3
+        msgv4               = sy-msgv4
+      importing
+        message_text_output = e_msg.
+
+
+  endmethod.                    "ajusta_operando
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Private Method ZCL_MANUTENCAO_OPERANDO=>VERIFICAR_OPERACAO
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_ANLAGE                       TYPE        ANLAGE
+* | [--->] I_OPERAND                      TYPE        E_OPERAND
+* | [--->] I_DATA_VALIDACAO               TYPE        DATS
+* | [<-()] R_OPERACAO                     TYPE        ZFAT_E_OPERACAO
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method verificar_operacao.
+    data l_dummy_op type e_operand.
+
+    select single operand
+        from ettifn
+         into l_dummy_op
+           where anlage = i_anlage
+             and operand = i_operand
+               and bis >= i_data_validacao.
+
+    if sy-subrc eq 0.
+      r_operacao = 'U'.
+    else.
+      r_operacao = 'I'.
+    endif.
+
+  endmethod.                    "verificar_operacao
+endclass.

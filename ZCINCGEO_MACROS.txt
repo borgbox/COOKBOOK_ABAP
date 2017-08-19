@@ -1,0 +1,174 @@
+*&---------------------------------------------------------------------*
+*&  Include           ZCINCGEO_MACROS
+*&---------------------------------------------------------------------*
+
+DATA: __page_template TYPE string VALUE 'ZCINC_PAGE_DEFINITION'.
+TYPES : BEGIN OF y_html,
+        dataset(255) TYPE c,
+        END OF y_html.
+
+DATA: e_data  TYPE y_html,
+      ts_data TYPE STANDARD TABLE OF y_html,
+      e_user  TYPE usr03,
+      ok_code TYPE sy-ucomm,
+      w_uname TYPE char20,
+      w_url   TYPE char255.
+
+DATA:  gt_html TYPE TABLE OF char3000.
+DATA : ref_cont TYPE REF TO cl_gui_custom_container,
+       ref_html TYPE REF TO cl_gui_html_viewer.
+
+*PARAMETERS  TYPE usr01-bname.
+
+PARAMETERS:  p_lat    TYPE char20 OBLIGATORY DEFAULT '-12.9616927',
+             p_long   TYPE char20 OBLIGATORY DEFAULT '-38.4375153',
+             p_mark   TYPE char30 OBLIGATORY DEFAULT 'Local de consumo' LOWER CASE,
+             p_value  TYPE char20 OBLIGATORY DEFAULT '123456789'.
+
+
+DEFINE __read_definition.
+  data:
+    lname type progname,
+    lline type string,
+    lreport type string.
+  data: par_strings type string_table.
+  lname = par_name.
+  read report lname into par_strings.
+  read table par_strings into lreport index 1.
+  loop at par_strings into lline from 2.
+    concatenate lreport lline into lreport
+      separated by cl_abap_char_utilities=>cr_lf.
+  endloop.
+  par_report = lreport.
+END-OF-DEFINITION.
+
+DEFINE __slit_string.
+  data:
+    llen type i,
+    lshift type i.
+*  if PAR_LENGTH is not supplied.
+  describe table par_table.
+  lshift = sy-tleng / cl_abap_char_utilities=>charsize.
+*  else.
+*    LSHIFT = PAR_LENGTH.
+*  endif.
+
+  clear par_table.
+
+  llen = strlen( par_data ).
+  while llen > lshift.
+    append par_data(lshift) to par_table.
+    shift par_data by lshift places.
+    llen = llen - lshift.
+  endwhile.
+  append par_data to par_table.
+
+END-OF-DEFINITION.
+
+DEFINE __gerage_html.
+  DATA: lpage TYPE string.
+  PERFORM readreport USING __page_template
+                    CHANGING lpage.
+
+   DATA lc_regex     TYPE string VALUE '([0-9,.]*)([\-]{0,1})'.
+
+
+      SHIFT p_lat LEFT DELETING LEADING ' '.
+      REPLACE REGEX lc_regex IN p_lat WITH '$2$1'.
+
+      SHIFT p_long LEFT DELETING LEADING ' '.
+      REPLACE REGEX lc_regex IN p_long WITH '$2$1'.
+
+  CONDENSE p_mark.
+  REPLACE '<var_latitude>'  WITH p_lat   INTO lpage.
+  REPLACE '<var_longitude>' WITH p_long  INTO lpage.
+  REPLACE '<label_marker>'  WITH p_mark  INTO lpage.
+  REPLACE '<marker_value>'  WITH p_value INTO lpage.
+
+  PERFORM splitstring USING lpage
+                      CHANGING ts_data.
+
+ end-OF-DEFINITION.
+
+
+DEFINE __call_map.
+  PERFORM f_genearte_html.
+  CALL SCREEN 9000.
+END-OF-DEFINITION.
+
+DEFINE __status_9000.
+  SET PF-STATUS 'STATUS'.
+
+  CREATE OBJECT ref_cont
+    EXPORTING
+      container_name              = 'CONTAINER'
+    EXCEPTIONS
+      cntl_error                  = 1
+      cntl_system_error           = 2
+      create_error                = 3
+      lifetime_error              = 4
+      lifetime_dynpro_dynpro_link = 5
+      OTHERS                      = 6.
+
+  IF sy-subrc <> 0.
+
+  ENDIF.
+
+  CREATE OBJECT ref_html
+    EXPORTING
+      parent             = ref_cont
+    EXCEPTIONS
+      cntl_error         = 1
+      cntl_install_error = 2
+      dp_install_error   = 3
+      dp_error           = 4
+      OTHERS             = 5.
+  IF sy-subrc <> 0.
+
+  ENDIF.
+
+
+  CALL METHOD ref_html->load_data
+    EXPORTING
+      type                 = 'text'
+      subtype              = 'html'
+    IMPORTING
+      assigned_url         = w_url
+    CHANGING
+      data_table           = ts_data
+    EXCEPTIONS
+      dp_invalid_parameter = 1
+      dp_error_general     = 2
+      cntl_error           = 3
+      OTHERS               = 4.
+  IF sy-subrc <> 0.
+
+  ENDIF.
+
+
+
+  CALL METHOD ref_html->show_url
+    EXPORTING
+      url                    = w_url
+*     in_place               = space
+    EXCEPTIONS
+      cntl_error             = 1
+      cnht_error_not_allowed = 2
+      cnht_error_parameter   = 3
+      dp_error_general       = 4
+      OTHERS                 = 5.
+  IF sy-subrc <> 0.
+
+  ENDIF.
+
+ end-OF-DEFINITION.
+
+ DEFINE __user_comand_9000.
+  CASE ok_code.
+    WHEN 'BACK'.
+
+      LEAVE TO SCREEN 0.
+
+    WHEN OTHERS.
+  ENDCASE.
+ end-OF-DEFINITION.
