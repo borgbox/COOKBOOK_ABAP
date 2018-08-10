@@ -1,0 +1,203 @@
+*&---------------------------------------------------------------------*
+*& Report  ZTESTE_FR_CLIENT
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+************************************************
+*** Criar tela 9000 e criar custom container chamado 'CONT'
+************************************************
+
+REPORT  zhttp_client_show_html.
+
+DATA : g_return TYPE string.
+
+TYPES : BEGIN OF y_html,
+        dataset(255) TYPE c,
+        END OF y_html.
+
+DATA: e_data  TYPE y_html,
+      ts_data TYPE STANDARD TABLE OF y_html,
+      e_user  TYPE usr03,
+      ok_code TYPE sy-ucomm,
+      w_uname TYPE char20,
+      w_url   TYPE char255.
+
+DATA : ref_cont TYPE REF TO cl_gui_custom_container,
+       ref_html TYPE REF TO cl_gui_html_viewer.
+
+PARAMETERS user_id TYPE usr01-bname.
+
+START-OF-SELECTION.
+
+  PERFORM gera_consome_client USING g_return.
+
+  CALL SCREEN 9000.
+
+END-OF-SELECTION.
+
+*&---------------------------------------------------------------------*
+*&      Module  STATUS_9000  OUTPUT
+*&---------------------------------------------------------------------*
+*       PBO for 9000
+*----------------------------------------------------------------------*
+MODULE status_9000 OUTPUT.
+*  SET PF-STATUS 'STATUS'.
+
+  e_data-dataset = '<html><body><h1>teste</h1></body></html>'." g_return.
+
+  APPEND e_data TO ts_data.
+
+  CREATE OBJECT ref_cont
+    EXPORTING
+      container_name              = 'CONT'
+    EXCEPTIONS
+      cntl_error                  = 1
+      cntl_system_error           = 2
+      create_error                = 3
+      lifetime_error              = 4
+      lifetime_dynpro_dynpro_link = 5
+      OTHERS                      = 6.
+
+  IF sy-subrc <> 0.
+
+  ENDIF.
+
+  CREATE OBJECT ref_html
+    EXPORTING
+      parent             = ref_cont
+    EXCEPTIONS
+      cntl_error         = 1
+      cntl_install_error = 2
+      dp_install_error   = 3
+      dp_error           = 4
+      OTHERS             = 5.
+  IF sy-subrc <> 0.
+
+  ENDIF.
+
+
+  CALL METHOD ref_html->load_data
+    EXPORTING
+      type                 = 'text'
+      subtype              = 'html'
+    IMPORTING
+      assigned_url         = w_url
+    CHANGING
+      data_table           = ts_data
+    EXCEPTIONS
+      dp_invalid_parameter = 1
+      dp_error_general     = 2
+      cntl_error           = 3
+      OTHERS               = 4.
+  IF sy-subrc <> 0.
+
+  ENDIF.
+
+  CALL METHOD ref_html->show_url
+    EXPORTING
+      url                    = w_url
+    EXCEPTIONS
+      cntl_error             = 1
+      cnht_error_not_allowed = 2
+      cnht_error_parameter   = 3
+      dp_error_general       = 4
+      OTHERS                 = 5.
+  IF sy-subrc <> 0.
+
+  ENDIF.
+
+ENDMODULE.                 " STATUS_9000  OUTPUT
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_9000  INPUT
+*&---------------------------------------------------------------------*
+*       PAI for screen 9000
+*----------------------------------------------------------------------*
+MODULE user_command_9000 INPUT.
+
+  CASE ok_code.
+    WHEN 'BACK'.
+
+      LEAVE TO SCREEN 0.
+
+    WHEN OTHERS.
+  ENDCASE.
+
+ENDMODULE.                    "user_command_9000 INPUT
+
+*&---------------------------------------------------------------------*
+*&      Form  MOSTRAR_HTML
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM mostrar_html USING p_return.
+
+
+
+ENDFORM.                    " MOSTRAR_HTML
+*&---------------------------------------------------------------------*
+*&      Form  GERA_CONSOME_CLIENT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_RETURN  text
+*----------------------------------------------------------------------*
+FORM gera_consome_client  USING    p_return.
+
+  DATA : lv_value TYPE string.
+
+  DATA : http_client TYPE REF TO if_http_client .
+  DATA : lv_url TYPE string.
+
+
+  DATA : lv_err_string TYPE string ,
+         lv_ret_code TYPE sy-subrc .
+
+* Build Url
+  lv_url = 'http://neopaq.neoenergia.net:50000/dir/start/index.jsp'.
+
+*CONCATENATE 'http://10.2.135.1:8081'
+*             lv_value
+*             INTO lv_url.
+
+* Create Client
+  CALL METHOD cl_http_client=>create_by_url
+    EXPORTING
+      url    = lv_url
+    IMPORTING
+      client = http_client.
+
+* Send
+  CALL METHOD http_client->send
+    EXCEPTIONS
+      http_communication_failure = 1
+      http_invalid_state         = 2.
+
+* Receive
+  CALL METHOD http_client->receive
+    EXCEPTIONS
+      http_communication_failure = 1
+      http_invalid_state         = 2
+      http_processing_failed     = 3.
+  IF sy-subrc NE 0.
+    http_client->response->get_status(
+      IMPORTING
+        code   = lv_ret_code
+        reason = lv_err_string
+           ).
+    MESSAGE lv_err_string TYPE 'I'.
+  ENDIF.
+
+* Now we have the response , parse , display
+* do what you like
+  g_return = http_client->response->get_cdata( ).
+
+  WRITE: g_return.
+
+
+ENDFORM.                    " GERA_CONSOME_CLIENT
