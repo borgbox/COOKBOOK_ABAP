@@ -1,0 +1,74 @@
+*&---------------------------------------------------------------------*
+*& Report  ZABAP_OO_EXE5
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT  zabap_oo_exe6.
+
+PARAMETERS p_cpf TYPE zfuncionario-cpf.
+
+
+START-OF-SELECTION.
+
+  DATA: cpf       TYPE char13,
+        nome      TYPE char50,
+        sobrenome TYPE char50,
+        cargo     TYPE char50,
+        salario   TYPE dec10_2.
+
+*** Declara objeto
+  DATA lo_zfuncionario TYPE REF TO zcl_funcionario.
+
+
+*** 1 - TRATAMENTO CAPTURANDO EXCEÇÃO E LANÇANDO A MENSAGEM TRADICIONAL
+
+*  TRY .
+*      CREATE OBJECT lo_zfuncionario
+*        EXPORTING
+*          i_cpf = p_cpf.
+*
+*    CATCH zcx_funcionario.    " Exceções.
+*      MESSAGE 'Funcionário não encontrado' TYPE 'E'.
+*  ENDTRY.
+
+*** 2 - TRATAMENTO CAPTURANDO EXCEÇÃO E LANÇANDO A MENSAGEM ADVINDA DA EXCEÇÃO
+  DATA: lo_zcx_funcionario TYPE REF TO zcx_funcionario,
+        l_msg              TYPE string.
+*  TRY .
+*      CREATE OBJECT lo_zfuncionario
+*        EXPORTING
+*          i_cpf = p_cpf.
+*
+*    CATCH zcx_funcionario INTO lo_zcx_funcionario.    " Exceções.
+*      l_msg = lo_zcx_funcionario->get_text( ).
+*      MESSAGE lo_zcx_funcionario TYPE 'E'.
+*  ENDTRY.
+
+** 3 - TRATAMENTO CAPTURANDO EXCEÇÃO E LANÇA MENSAGEM E CONTINUA PROCESSAMENTO
+  TRY .
+      CREATE OBJECT lo_zfuncionario
+        EXPORTING
+          i_cpf = p_cpf.
+
+      WRITE:/ 'Execução continuou'.
+
+    CATCH BEFORE UNWIND  zcx_funcionario.    " Exceções.
+      RESUME.
+      MESSAGE 'Funcionário não encontrado' TYPE 'E'.
+  ENDTRY.
+
+
+  cpf       = lo_zfuncionario->get_cpf( ).
+  nome      = lo_zfuncionario->get_nome( ).
+  sobrenome = lo_zfuncionario->get_sobrenome( ).
+  cargo     = lo_zfuncionario->get_cargo( ).
+  salario   = lo_zfuncionario->get_salario( ).
+
+  WRITE:/ 'CPF: ',       cpf      .
+  WRITE:/ 'NOME: ',      nome     .
+  WRITE:/ 'SOBRENOME: ', sobrenome.
+  WRITE:/ 'CARGO: ',     cargo    .
+  WRITE:/ 'SALÁRIO: ',   salario  .

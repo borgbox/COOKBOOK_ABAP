@@ -1,0 +1,107 @@
+*&---------------------------------------------------------------------*
+*& Report  ZEXE_OO_007
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT  zexe_oo_008_1.
+
+DATA: lt_funcionario TYPE STANDARD TABLE OF REF TO zif_funcionario,
+      lo_funcionario TYPE REF TO zif_funcionario, "zcl_funcionario_modelo,
+      lo_gerente     TYPE REF TO zcl_funcionario_gerente,
+      lo_operario    TYPE REF TO zcl_funcionario_operario.
+
+
+START-OF-SELECTION.
+
+  BREAK-POINT.
+
+*******************************************
+*** 1 - Criando instâncias Diretamente
+*******************************************
+  CREATE OBJECT lo_gerente
+    EXPORTING
+      i_cpf       = '06033335631'
+      i_nome      = 'FRANCISCO'
+      i_sobrenome = 'FREITAS'
+      i_salario   = '2000.00'
+      i_cargo     = zif_funcionario=>tipo_cargo-gerente.
+
+  APPEND lo_gerente TO lt_funcionario.
+
+  CREATE OBJECT lo_gerente
+    EXPORTING
+      i_cpf       = '06033335633'
+      i_nome      = 'FERNADO'
+      i_sobrenome = 'ALVES'
+      i_salario   = '3000.00'
+      i_cargo     = zif_funcionario=>tipo_cargo-gerente.
+
+  APPEND lo_gerente TO lt_funcionario.
+
+  CREATE OBJECT lo_operario
+    EXPORTING
+      i_cpf       = '06033335633'
+      i_nome      = 'JOSÉ'
+      i_sobrenome = 'SILVA'
+      i_salario   = '3000.00'
+      i_cargo     = zif_funcionario=>tipo_cargo-operario.
+
+  APPEND lo_operario TO lt_funcionario.
+
+*******************************************
+*** 2 - Criando instâncias Diretamente
+*******************************************
+  zcl_funcionario_modelo=>get_instancia(
+    EXPORTING
+      i_cpf             =  '06033331111'   " Campo alfanumérico de 13 caracteres
+      i_nome            =  'MARLEY'
+      i_sobrenome       =  'FREITAS'
+      i_cargo           =  zif_funcionario=>tipo_cargo-operario
+      i_salario         =  '3030.00'
+    RECEIVING
+    e_obj_funcionario   =   lo_funcionario  " Teste
+  EXCEPTIONS
+    OTHERS            = 1
+  ).
+  IF sy-subrc <> 0.
+    MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+               WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+  ENDIF.
+
+  APPEND lo_funcionario TO lt_funcionario.
+
+  DATA salario       TYPE dec10_2.
+  DATA verba_terno   TYPE dec10_2.
+
+*** Objetos e variáveis para verificação da classe representante do objeto
+  DATA: o_ref        TYPE REF TO cl_abap_typedescr,
+        l_class_nome TYPE string.
+
+
+**********************************************************************************
+*** Percorre tabela de e verifica o tipo de objeto para fazer a atribuição
+**********************************************************************************
+  LOOP AT  lt_funcionario INTO lo_funcionario.
+
+    o_ref = cl_abap_typedescr=>describe_by_object_ref( lo_funcionario ).
+    l_class_nome = o_ref->get_relative_name( ).
+    WRITE:/ l_class_nome.
+    salario =  lo_funcionario->get_salario( )." zif_funcionario~get_salario( ).
+
+    TRY .
+        IF l_class_nome = 'ZCL_GERENTE'.
+          lo_gerente ?= lo_funcionario.
+        ENDIF.
+
+      CATCH cx_sy_move_cast_error.
+        MESSAGE 'Erro des casting' TYPE 'E'.
+    ENDTRY.
+
+    verba_terno = lo_gerente->get_verba_terno( ).
+
+    WRITE:/ salario.
+
+  ENDLOOP.

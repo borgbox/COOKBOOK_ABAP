@@ -1,0 +1,96 @@
+class ZCL_CALCULADORA definition
+  public
+  create public .
+
+public section.
+*"* public components of class ZCL_CALCULADORA
+*"* do not include other source files here!!!
+
+  methods SOMA
+    exporting
+      !RESULTADO type DEC10_2 .
+  methods SUBTRACAO
+    exporting
+      !RESULTADO type DEC10_2 .
+  methods DIVISAO
+    exporting
+      !RESULTADO type DEC10_2 .
+  methods MULTIPLICACAO
+    exporting
+      !RESULTADO type DEC10_2 .
+  methods CONSTRUCTOR
+    importing
+      !N1 type DEC10_2
+      !N2 type DEC10_2 .
+PROTECTED SECTION.
+private section.
+*"* private components of class ZCL_CALCULADORA
+*"* do not include other source files here!!!
+
+  data NUM1 type DEC10_2 .
+  data NUM2 type DEC10_2 .
+ENDCLASS.
+
+
+
+CLASS ZCL_CALCULADORA IMPLEMENTATION.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_CALCULADORA->CONSTRUCTOR
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] N1                             TYPE        DEC10_2
+* | [--->] N2                             TYPE        DEC10_2
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD constructor.
+
+    me->num1 = n1.
+    me->num2 = n2.
+
+  ENDMETHOD.                    "constructor
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_CALCULADORA->DIVISAO
+* +-------------------------------------------------------------------------------------------------+
+* | [<---] RESULTADO                      TYPE        DEC10_2
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD divisao.
+    IF me->num2 <> 0.
+      resultado = me->num1 / me->num2.
+    ELSE.
+      MESSAGE 'Erro: Divisão por Zero' TYPE 'E'.
+    ENDIF.
+
+  ENDMETHOD.                    "divisao
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_CALCULADORA->MULTIPLICACAO
+* +-------------------------------------------------------------------------------------------------+
+* | [<---] RESULTADO                      TYPE        DEC10_2
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD multiplicacao.
+    resultado = me->num1 * me->num2.
+  ENDMETHOD.                    "multiplicacao
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_CALCULADORA->SOMA
+* +-------------------------------------------------------------------------------------------------+
+* | [<---] RESULTADO                      TYPE        DEC10_2
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD soma.
+    resultado = me->num1 + me->num2.
+  ENDMETHOD.                    "soma
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_CALCULADORA->SUBTRACAO
+* +-------------------------------------------------------------------------------------------------+
+* | [<---] RESULTADO                      TYPE        DEC10_2
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD subtracao.
+    resultado = me->num1 - me->num2.
+  ENDMETHOD.                    "subtracao
+ENDCLASS.

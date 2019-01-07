@@ -1,0 +1,313 @@
+*&---------------------------------------------------------------------*
+*& Report  ZEXE_OO_ALV
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT  zexe_oo_alv.
+
+TYPE-POOLS abap.
+
+TYPES: BEGIN OF ty_ustyp,
+         ustyp TYPE usr02-ustyp,
+         color   TYPE lvc_s_colo,
+        END OF ty_ustyp.
+
+
+TYPES: BEGIN OF ty_usr02,
+       bname  TYPE usr02-bname  ,
+       bcode  TYPE usr02-bcode  ,
+       gltgv  TYPE usr02-gltgv  ,
+       gltgb  TYPE usr02-gltgb  ,
+       ustyp  TYPE usr02-ustyp  ,
+       class  TYPE usr02-class ,
+       locnt  TYPE usr02-locnt  ,
+       uflag  TYPE usr02-uflag  ,
+       accnt  TYPE usr02-accnt  ,
+       aname  TYPE usr02-aname  ,
+       erdat  TYPE usr02-erdat  ,
+       trdat  TYPE usr02-trdat  ,
+       ltime  TYPE usr02-ltime  ,
+     END OF ty_usr02.
+
+TYPES: BEGIN OF ty_saida,
+        mandt TYPE usr02-mandt ,
+        bname TYPE usr02-bname ,
+        bcode TYPE usr02-bcode ,
+        gltgv TYPE usr02-gltgv ,
+        gltgb TYPE usr02-gltgb ,
+        ustyp TYPE usr02-ustyp ,
+        class TYPE usr02-class ,
+        locnt TYPE usr02-locnt ,
+        uflag TYPE usr02-uflag ,
+        accnt TYPE usr02-accnt ,
+        aname TYPE usr02-aname ,
+        erdat TYPE usr02-erdat ,
+        trdat TYPE usr02-trdat ,
+        ltime TYPE usr02-ltime ,
+        t_cores TYPE  lvc_t_scol  ,
+     END OF ty_saida.
+
+DATA: go_alv_oo TYPE REF TO cl_salv_table,
+      gt_usr02 TYPE STANDARD TABLE OF ty_usr02,
+      gt_saida TYPE STANDARD TABLE OF ty_saida.
+
+
+*----------------------------------------------------------------------*
+*       CLASS LCL_EVENT DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS lcl_event DEFINITION.
+
+  PUBLIC SECTION.
+
+    METHODS: duplo_clique FOR EVENT double_click OF cl_salv_events_table IMPORTING row column,
+
+             clique_unico FOR EVENT link_click OF cl_salv_events_table IMPORTING row column.
+
+ENDCLASS.                    "LCL_EVENT DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS LCL_EVENT IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS lcl_event IMPLEMENTATION.
+
+  METHOD duplo_clique.
+    DATA: l_msg TYPE string,
+          l_linha TYPE string.
+    l_linha = row.
+    CONCATENATE 'Você clicou na linha' l_linha 'e na coluna' column INTO l_msg SEPARATED BY space.
+    MESSAGE l_msg TYPE 'I'.
+  ENDMETHOD.                    "duplo_clique
+
+  METHOD clique_unico.
+    DATA l_saida TYPE ty_saida.
+    READ TABLE gt_saida INDEX row INTO l_saida.
+    SET PARAMETER ID 'XUS' FIELD l_saida-bname.
+    CALL TRANSACTION 'SU01' AND SKIP FIRST SCREEN.
+  ENDMETHOD.                    "clique_unico
+
+
+ENDCLASS.                    "LCL_EVENT IMPLEMENTATION
+
+INCLUDE <icon>.
+
+
+
+START-OF-SELECTION.
+
+
+*** Carrega dados e seta as cores nas células
+  PERFORM carrega_dados.
+
+*** Instancia ALV
+  cl_salv_table=>factory(
+*    EXPORTING
+*    list_display   = IF_SALV_C_BOOL_SAP=>FALSE
+*    r_container    =
+*    container_name =
+  IMPORTING
+      r_salv_table   = go_alv_oo
+    CHANGING
+      t_table        = gt_saida  ).
+
+
+*** REGISTRA FUNÇÃO
+  DATA lo_funcoes TYPE REF TO cl_salv_functions.
+  lo_funcoes = go_alv_oo->get_functions( ).
+  lo_funcoes->set_all( abap_true ).
+
+TRY .
+
+    data: lr_functions type ref to cl_salv_functions_list.
+  lr_functions = go_alv_oo->get_functions( ).
+  lr_functions->set_filter(
+    EXPORTING
+      value = IF_SALV_C_BOOL_SAP=>false
+*    EXCEPTIONS
+*      others = 1
+  ).
+  IF sy-subrc <> 0.
+*   MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+*              WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+  ENDIF.
+
+CATCH cx_salv_not_found.
+  BREAK-POINT.
+CATCH cx_salv_wrong_call.
+  BREAK-POINT.
+ENDTRY.
+
+*    CATCH cx_salv_not_found.    "
+*    CATCH cx_salv_wrong_call.    "
+
+*lo_funcoes->remove_function( 'SAVE' ).
+*  CATCH cx_salv_not_found.    "
+*  CATCH cx_salv_wrong_call.    "
+
+*    CATCH cx_salv_existing.    "
+*    CATCH cx_salv_wrong_call.    "
+
+*** OPÇÕES DE APRESENTAÇÃO
+  DATA lo_display_settings TYPE REF TO cl_salv_display_settings.
+  lo_display_settings = go_alv_oo->get_display_settings( ).
+  lo_display_settings->set_list_header( 'CABEÇALHO' ).
+  lo_display_settings->set_striped_pattern( cl_salv_display_settings=>true ).
+
+
+*** ADICIONA ORDENAÇÃO
+  DATA lo_ordenacao TYPE REF TO cl_salv_sorts.
+  lo_ordenacao = go_alv_oo->get_sorts( ).
+  lo_ordenacao->add_sort(
+    EXPORTING
+      columnname = 'USTYP'  ).
+*    CATCH cx_salv_not_found.    "
+*    CATCH cx_salv_existing.    "
+*    CATCH cx_salv_data_error.    "
+
+*** CRIA AGREGAÇÕES
+  DATA lo_agregacao TYPE REF TO cl_salv_aggregations.
+  lo_agregacao = go_alv_oo->get_aggregations( ).
+  lo_agregacao->add_aggregation(
+    EXPORTING
+      columnname  = 'LOCNT'
+      aggregation = if_salv_c_aggregation=>total ).
+
+
+*** ADICIONA FILTROS
+*  DATA lo_filter TYPE REF TO cl_salv_filters.
+*  lo_filter = go_alv_oo->get_filters( ).
+*  lo_filter->add_filter(
+*    EXPORTING
+*      columnname = 'BNAME'
+**      sign       = 'I'
+**      option     = 'EQ'
+*      low        =  'FRANCISCO'
+**      high       =
+*
+*  ).
+*    CATCH cx_salv_not_found.    "
+*    CATCH cx_salv_data_error.    "
+*    CATCH cx_salv_existing.    "
+
+*** REGISTRA EVENTO
+  DATA:  lo_lcl_event TYPE REF TO lcl_event.
+  CREATE OBJECT lo_lcl_event.
+
+  DATA:  lr_events TYPE REF TO cl_salv_events_table.
+  lr_events = go_alv_oo->get_event( ).
+
+  SET HANDLER lo_lcl_event->clique_unico FOR lr_events.
+  SET HANDLER lo_lcl_event->duplo_clique FOR lr_events.
+
+*** CONFIGURA LAYOUT
+  DATA: lo_layout TYPE REF TO cl_salv_layout,
+        key       TYPE salv_s_layout_key.
+
+  lo_layout = go_alv_oo->get_layout( ).
+  key-report = sy-repid.
+  key-handle = '01'.
+  lo_layout->set_key( key ).
+  lo_layout->set_save_restriction( if_salv_c_layout=>restrict_none ).
+
+
+*** CONFIGUROU COLUNAS
+  DATA: lo_columns  TYPE REF TO cl_salv_columns_table,
+        lo_column   TYPE REF TO cl_salv_column_table.
+
+*  go_alv_oo->get_columns( )->get_column( 'MANDT' )->set_visible( abap_false ).
+*  go_alv_oo->get_columns( )->get_column( 'BCODE' )->set_medium_text( 'BLABLA' ).
+*  go_alv_oo->get_columns( )->get_column( 'BCODE' )->set_short_text( 'BLABLA' ).
+*  go_alv_oo->get_columns( )->get_column( 'BCODE' )->set_long_text( 'BLABLA' ).
+
+  " Seta o nome da coluna referência da cores
+  lo_columns = go_alv_oo->get_columns( ).
+
+  TRY.
+      go_alv_oo->get_columns( )->set_color_column( 'T_CORES' ). "Column name for color details"
+    CATCH cx_salv_data_error .
+  ENDTRY.
+
+  TRY .
+      lo_column ?= lo_columns->get_column( 'MANDT' ).
+      lo_column->set_technical( abap_true ).
+    CATCH cx_salv_not_found.
+
+  ENDTRY.
+
+  TRY .
+      lo_column ?= lo_columns->get_column( 'BNAME' ).
+      lo_column->set_cell_type( if_salv_c_cell_type=>hotspot ).
+
+      go_alv_oo->get_selections( )->set_selection_mode( if_salv_c_selection_mode=>single ).
+
+
+      "TRATAMENTO DE COR POR LINHA OU POR COLUNA
+      "Muda a cor de toda a coluna
+*      DATA l_cor TYPE lvc_s_colo.
+*      lo_column ?= go_alv_oo->get_columns( )->get_column( 'GLTGV' ).
+*      l_cor-col = '6'.
+*      l_cor-int = '1'.
+*      l_cor-inv = '0'.
+*
+*      lo_column->set_color( l_cor ).
+
+    CATCH cx_salv_not_found.
+
+  ENDTRY.
+
+  go_alv_oo->display( ).
+
+
+
+
+
+*  CATCH cx_salv_msg.    "
+*&---------------------------------------------------------------------*
+*&      Form  CARREGA_DADOS
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM carrega_dados .
+
+  DATA ls_cor TYPE lvc_s_scol.
+
+  SELECT  bname bcode
+          gltgv gltgb
+          ustyp class
+          locnt uflag
+          accnt aname
+          erdat trdat
+          ltime
+         FROM usr02 UP TO 50 ROWS INTO TABLE gt_usr02.
+
+  FIELD-SYMBOLS: <usr02> TYPE ty_usr02,
+                 <saida> TYPE ty_saida.
+
+  LOOP AT gt_usr02 ASSIGNING <usr02>.
+    APPEND INITIAL LINE TO gt_saida ASSIGNING <saida>.
+    MOVE-CORRESPONDING <usr02> TO <saida>.
+
+*** Atribui a cor por linha
+    IF <usr02>-ustyp = 'A'.
+      ls_cor-fname = 'USTYP'. "Nome da coluna
+      ls_cor-color-col = '3'.
+      APPEND ls_cor TO <saida>-t_cores.
+    ELSE.
+      ls_cor-fname = 'USTYP'. "Nome da coluna
+      ls_cor-color-col = '6'.
+      APPEND ls_cor TO <saida>-t_cores.
+    ENDIF.
+
+  ENDLOOP.
+
+
+ENDFORM.                    " CARREGA_DADOS

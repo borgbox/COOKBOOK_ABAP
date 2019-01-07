@@ -1,0 +1,120 @@
+*&---------------------------------------------------------------------*
+*& Report  ZEXE_OO_EMAIL
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT  zexe_oo_email.
+
+DATA: email_requisicao    TYPE REF TO cl_bcs,
+      documento           TYPE REF TO cl_document_bcs,
+      emitente            TYPE REF TO cl_sapuser_bcs,
+      destinatario        TYPE REF TO if_recipient_bcs,
+      gt_conteudo         TYPE        soli_tab,
+      gv_conteudo         TYPE        soli,
+      bcs_exception       TYPE REF TO cx_bcs,
+      gv_so_obj_tp        TYPE so_obj_tp.
+
+DATA gt_hex_email TYPE solix_tab.
+
+PARAMETERS: p_ass(50)  TYPE c,
+            p_email    TYPE  sza5_d0700-smtp_addr,
+            p_msg(100) TYPE c,
+            p_arq      TYPE string,
+            rd_html  RADIOBUTTON GROUP g1,
+            rd_texto RADIOBUTTON GROUP g1.
+
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR p_arq.
+
+  DATA: lt_file_table TYPE filetable,
+        l_filename    TYPE filename,
+        l_rc          TYPE i.
+
+  cl_gui_frontend_services=>file_open_dialog(
+    CHANGING
+      file_table              = lt_file_table
+      rc                      = l_rc ).
+  READ TABLE lt_file_table INDEX 1 INTO l_filename.
+  p_arq = l_filename.
+
+
+START-OF-SELECTION.
+
+*** Gera Conteudo
+  IF rd_html IS NOT INITIAL.
+    CONCATENATE '<html>' '<body>' p_msg '</body>' '</html>' INTO gv_conteudo.
+    APPEND gv_conteudo TO gt_conteudo.
+
+    gv_so_obj_tp = 'HTM'.
+
+  ELSE.
+    p_msg  = gv_conteudo.
+    APPEND gv_conteudo TO gt_conteudo.
+    gv_so_obj_tp = 'TXT'.
+
+  ENDIF.
+
+  TRY.
+*Create persistent send request
+      email_requisicao = cl_bcs=>create_persistent( ).
+
+      documento = cl_document_bcs=>create_document(
+       i_type    = gv_so_obj_tp
+       i_subject = p_ass
+       i_text    = gt_conteudo ).
+
+* Adciona anexo
+      CALL FUNCTION 'GUI_UPLOAD'
+        EXPORTING
+          filename = p_arq
+          filetype = 'BIN'
+        TABLES
+          data_tab = gt_hex_email.
+
+      documento->add_attachment(
+      EXPORTING
+      i_attachment_type = 'TXT'
+      i_attachment_subject = 'Exemplo Anexo'
+      i_att_content_hex = gt_hex_email ).
+
+
+* Adiciona documeneto à requisição
+      email_requisicao->set_document( documento ).
+
+* Monta emitente
+      emitente = cl_sapuser_bcs=>create( sy-uname ).
+
+* Adiciona emitente
+      email_requisicao->set_sender(
+        EXPORTING
+          i_sender = emitente ).
+
+* Cria e adiciona destinatário
+      destinatario = cl_cam_address_bcs=>create_internet_address( p_email ).
+      email_requisicao->add_recipient(
+        EXPORTING
+          i_recipient = destinatario ).
+
+* Seta o status para não requerer confirmação
+      DATA: status_mail TYPE bcs_stml.
+      status_mail = 'N'.
+      email_requisicao->set_status_attributes(
+        EXPORTING
+          i_requested_status = status_mail
+          i_status_mail      = status_mail ).
+
+* seta flag para envio imediato
+   email_requisicao->set_send_immediately( 'X' ).
+
+* Envia requisição
+      email_requisicao->send( ).
+
+      COMMIT WORK.
+
+    CATCH cx_bcs INTO bcs_exception.
+      MESSAGE bcs_exception TYPE 'E'.
+  ENDTRY.
+
+END-OF-SELECTION.

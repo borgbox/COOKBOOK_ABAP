@@ -1,0 +1,103 @@
+*&---------------------------------------------------------------------*
+*& Report  ZABAP_OO_EXE3
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT  zabap_oo_exe3.
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_usuario DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS lcl_usuario DEFINITION.
+
+  PUBLIC SECTION.
+
+    DATA usuario TYPE usr02.
+
+    METHODS: constructor IMPORTING i_bname TYPE xubname,
+             get_usuario RETURNING value(r_usuario) TYPE usr02,
+             get_dias_ultimo_login RETURNING value(r_dias) TYPE i,
+             get_criador RETURNING value(r_criador) TYPE string.
+
+    CLASS-METHODS: concatenar_texto IMPORTING p1 TYPE string
+                                              p2 TYPE xubname
+                                    RETURNING value(r_resultado) TYPE string.
+
+
+ENDCLASS.                    "lcl_usuario DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_usuario IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS lcl_usuario IMPLEMENTATION.
+
+  METHOD constructor.
+    SELECT SINGLE * FROM usr02 INTO me->usuario WHERE bname = i_bname.
+  ENDMETHOD.                    "constructor
+
+  METHOD get_usuario.
+    r_usuario = me->usuario.
+  ENDMETHOD.                    "get_usuario
+
+  METHOD get_dias_ultimo_login.
+    r_dias = sy-datum - me->usuario-trdat.
+  ENDMETHOD.                    "get_criador
+
+  METHOD get_criador.
+
+    lcl_usuario=>concatenar_texto(
+      EXPORTING
+        p1          = 'Criador:'
+        p2          = me->usuario-aname
+      RECEIVING
+        r_resultado = r_criador ).
+
+
+  ENDMETHOD.                    "get_criador
+
+  METHOD concatenar_texto.
+    CONCATENATE p1 p2 INTO r_resultado SEPARATED BY space.
+  ENDMETHOD.                    "concatenar_texto
+
+ENDCLASS.                    "lcl_usuario IMPLEMENTATION
+
+PARAMETERS p_usr TYPE xubname.
+
+START-OF-SELECTION.
+
+  DATA: lo_usuario           TYPE REF TO lcl_usuario,
+        lv_dias_ultimo_logon TYPE i,
+        ls_usuario           TYPE usr02.
+
+  CREATE OBJECT lo_usuario
+    EXPORTING
+      i_bname = p_usr.
+
+*  lo_usuario->get_usuario(
+*    RECEIVING
+*      r_usuario = ls_usuario ).
+*
+*  lo_usuario->get_dias_ultimo_login(
+*    RECEIVING
+*      r_dias = lv_dias_ultimo_logon ).
+
+  ls_usuario = lo_usuario->get_usuario( ).
+
+  lv_dias_ultimo_logon = lo_usuario->get_dias_ultimo_login( ).
+
+
+DATA l_criador TYPE string.
+
+l_criador = lo_usuario->get_criador( ).
+
+WRITE:/ 'Criador: ', l_criador.
+WRITE:/ 'Data da criação: ', ls_usuario-erdat+6(2), '/', ls_usuario-erdat+4(2) , '/', ls_usuario-erdat(4).
+WRITE:/ 'Tipo de usuário: ', ls_usuario-ustyp.
+WRITE:/ 'Número dias do último logon: ', lv_dias_ultimo_logon.

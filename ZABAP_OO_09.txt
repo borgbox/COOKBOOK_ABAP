@@ -1,0 +1,122 @@
+*&---------------------------------------------------------------------*
+*& Report  ZABAP_OO_09
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT  zabap_oo_09.
+
+DATA: lo_cia_aerea       TYPE REF TO zcl_cia_aerea_pers,
+      lo_cia_aerea_agent TYPE REF TO zca_cia_aerea_pers.
+
+PARAMETERS: p_carrid TYPE scarr-carrid,
+            p_carr   TYPE scarr-carrname,
+            p_curr   TYPE scarr-currcode,
+            p_url    TYPE scarr-url.
+
+SELECTION-SCREEN SKIP.
+
+PARAMETERS: p_ins RADIOBUTTON GROUP g1,
+            p_del RADIOBUTTON GROUP g1,
+            p_upd RADIOBUTTON GROUP g1,
+            p_ler RADIOBUTTON GROUP g1.
+
+AT SELECTION-SCREEN.
+
+  " Recebe o agente que realizará as operações no DB
+  lo_cia_aerea_agent = zca_cia_aerea_pers=>agent.
+
+  IF p_ins = 'X'.
+
+    TRY .
+        lo_cia_aerea = lo_cia_aerea_agent->create_persistent( p_carrid ).
+
+        lo_cia_aerea->set_currcode( p_curr ).
+        lo_cia_aerea->set_carrname( p_carr ).
+        lo_cia_aerea->set_url( p_url ).
+
+    COMMIT WORK AND WAIT.
+
+      CATCH cx_os_object_not_found.
+        MESSAGE 'Objeto Não encontrado' TYPE 'E'.
+      CATCH cx_os_object_existing.
+        MESSAGE 'Objeto já existe' TYPE 'E'.
+    ENDTRY.
+
+
+
+  ENDIF.
+
+  IF p_del = 'X'.
+
+    TRY .
+        lo_cia_aerea_agent->delete_persistent( p_carrid ).
+      CATCH cx_os_object_not_existing.
+        MESSAGE 'Objeto NÃO já existe' TYPE 'E'.
+    ENDTRY.
+
+    COMMIT WORK AND WAIT.
+
+  ENDIF.
+
+  IF p_upd = 'X'.
+
+    TRY .
+
+        lo_cia_aerea = lo_cia_aerea_agent->get_persistent( p_carrid ).
+
+        lo_cia_aerea->set_currcode( p_curr ).
+        lo_cia_aerea->set_carrname( p_carr ).
+        lo_cia_aerea->set_url( p_url ).
+
+      CATCH cx_os_object_not_found.
+        MESSAGE 'Objeto NÃO existe' TYPE 'E'.
+    ENDTRY.
+
+    COMMIT WORK AND WAIT.
+
+
+  ENDIF.
+
+  IF p_ler = 'X'.
+
+    DATA: lt_obj   TYPE osreftab,
+          lo_obj   TYPE osref,
+          lo_query TYPE REF TO if_os_query.
+
+    lo_query = cl_os_system=>get_query_manager( )->create_query(
+        i_filter  =  'CARRNAME LIKE PAR1' ).
+
+    TRY .
+
+        DATA l_carr TYPE scarr-carrname.
+        l_carr =  p_carr && '%'.
+
+        lt_obj = zca_cia_aerea_pers=>agent->if_os_ca_persistency~get_persistent_by_query(
+            i_query         =  lo_query
+*    i_parameter_tab =
+            i_par1          = l_carr
+        ).
+      CATCH cx_os_object_not_found.  "
+        MESSAGE 'Erro de query' TYPE 'E'.
+      CATCH cx_os_query_error.  "
+        MESSAGE 'Erro de query' TYPE 'E'.
+    ENDTRY.
+
+    " Casting
+    READ TABLE lt_obj INDEX 1 INTO lo_obj.
+    IF sy-subrc = 0.
+      lo_cia_aerea ?= lo_obj.
+
+      p_carrid = lo_cia_aerea->get_carrid( ).
+      p_carr   = lo_cia_aerea->get_carrname( ).
+      p_curr   = lo_cia_aerea->get_currcode( ).
+      p_url    = lo_cia_aerea->get_url( ).
+
+    ENDIF.
+
+  ENDIF.
+
+START-OF-SELECTION.

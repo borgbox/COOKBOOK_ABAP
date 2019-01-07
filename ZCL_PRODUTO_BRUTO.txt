@@ -1,0 +1,21 @@
+class ZCL_PRODUTO_BRUTO definition
+  public
+  inheriting from ZCL_PRODUTO_MODELO
+  final
+  create public .
+
+public section.
+*"* public components of class ZCL_PRODUTO_BRUTO
+*"* do not include other source files here!!!
+protected section.
+*"* protected components of class ZCL_PRODUTO_BRUTO
+*"* do not include other source files here!!!
+private section.
+*"* private components of class ZCL_PRODUTO_BRUTO
+*"* do not include other source files here!!!
+ENDCLASS.
+
+
+
+CLASS ZCL_PRODUTO_BRUTO IMPLEMENTATION.
+ENDCLASS.

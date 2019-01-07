@@ -1,0 +1,196 @@
+class ZCL_FUNCIONARIO_MODELO definition
+  public
+  abstract
+  create public .
+
+public section.
+*"* public components of class ZCL_FUNCIONARIO_MODELO
+*"* do not include other source files here!!!
+
+  interfaces ZIF_FUNCIONARIO .
+
+  methods CONSTRUCTOR
+    importing
+      !I_CPF type ZFUNCIONARIO-CPF
+      !I_NOME type ZFUNCIONARIO-NOME
+      !I_SOBRENOME type ZFUNCIONARIO-SOBRENOME
+      !I_CARGO type ZFUNCIONARIO-CARGO
+      !I_SALARIO type ZFUNCIONARIO-SALARIO .
+  class-methods GET_INSTANCIA
+    importing
+      !I_CPF type ZFUNCIONARIO-CPF
+      !I_NOME type ZFUNCIONARIO-NOME
+      !I_SOBRENOME type ZFUNCIONARIO-SOBRENOME
+      !I_CARGO type ZFUNCIONARIO-CARGO
+      !I_SALARIO type ZFUNCIONARIO-SALARIO
+    returning
+      value(E_OBJ_FUNCIONARIO) type ref to ZCL_FUNCIONARIO_MODELO .
+protected section.
+*"* protected components of class ZCL_FUNCIONARIO_MODELO
+*"* do not include other source files here!!!
+private section.
+*"* private components of class ZCL_FUNCIONARIO_MODELO
+*"* do not include other source files here!!!
+ENDCLASS.
+
+
+
+CLASS ZCL_FUNCIONARIO_MODELO IMPLEMENTATION.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_FUNCIONARIO_MODELO->CONSTRUCTOR
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_CPF                          TYPE        ZFUNCIONARIO-CPF
+* | [--->] I_NOME                         TYPE        ZFUNCIONARIO-NOME
+* | [--->] I_SOBRENOME                    TYPE        ZFUNCIONARIO-SOBRENOME
+* | [--->] I_CARGO                        TYPE        ZFUNCIONARIO-CARGO
+* | [--->] I_SALARIO                      TYPE        ZFUNCIONARIO-SALARIO
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+METHOD constructor.
+
+  me->zif_funcionario~cpf       = i_cpf.
+  me->zif_funcionario~nome      = i_nome.
+  me->zif_funcionario~sobrenome = i_sobrenome.
+  me->zif_funcionario~cargo     = i_cargo.
+  me->zif_funcionario~salario   = i_salario.
+
+ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Public Method ZCL_FUNCIONARIO_MODELO=>GET_INSTANCIA
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_CPF                          TYPE        ZFUNCIONARIO-CPF
+* | [--->] I_NOME                         TYPE        ZFUNCIONARIO-NOME
+* | [--->] I_SOBRENOME                    TYPE        ZFUNCIONARIO-SOBRENOME
+* | [--->] I_CARGO                        TYPE        ZFUNCIONARIO-CARGO
+* | [--->] I_SALARIO                      TYPE        ZFUNCIONARIO-SALARIO
+* | [<-()] E_OBJ_FUNCIONARIO              TYPE REF TO ZCL_FUNCIONARIO_MODELO
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+METHOD get_instancia.
+
+  CASE i_cargo.
+    WHEN 'OPERARIO'.
+      CREATE OBJECT e_obj_funcionario TYPE zcl_funcionario_operario
+        EXPORTING
+          i_cpf       = i_cpf
+          i_nome      = i_nome
+          i_sobrenome = i_sobrenome
+          i_cargo     = i_cargo
+          i_salario   = i_salario.
+
+    WHEN 'GERENTE'.
+      CREATE OBJECT e_obj_funcionario TYPE zcl_funcionario_gerente
+        EXPORTING
+          i_cpf       = i_cpf
+          i_nome      = i_nome
+          i_sobrenome = i_sobrenome
+          i_cargo     = i_cargo
+          i_salario   = i_salario.
+    WHEN OTHERS.
+      MESSAGE 'Erro: Instância para esse objeto não existe' TYPE 'E'.
+  ENDCASE.
+
+ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_FUNCIONARIO_MODELO->ZIF_FUNCIONARIO~GET_CARGO
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] R_CARGO                        TYPE        STRING
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method ZIF_FUNCIONARIO~GET_CARGO.
+  r_cargo = me->zif_funcionario~cargo.
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_FUNCIONARIO_MODELO->ZIF_FUNCIONARIO~GET_DATA_NASC
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] R_DATA_NASCIMENTO              TYPE        DATS
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method ZIF_FUNCIONARIO~GET_DATA_NASC.
+    r_data_nascimento = me->zif_funcionario~data_nasc.
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_FUNCIONARIO_MODELO->ZIF_FUNCIONARIO~GET_NOME
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] R_NOME                         TYPE        STRING
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method ZIF_FUNCIONARIO~GET_NOME.
+  r_nome = me->zif_funcionario~nome.
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_FUNCIONARIO_MODELO->ZIF_FUNCIONARIO~GET_SALARIO
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] R_SALARIO                      TYPE        DEC10_2
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method ZIF_FUNCIONARIO~GET_SALARIO.
+  r_salario = me->zif_funcionario~salario.
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_FUNCIONARIO_MODELO->ZIF_FUNCIONARIO~GET_SOBRENOME
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] R_SOBRENOME                    TYPE        STRING
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method ZIF_FUNCIONARIO~GET_SOBRENOME.
+  r_sobrenome = me->zif_funcionario~sobrenome.
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_FUNCIONARIO_MODELO->ZIF_FUNCIONARIO~SET_CARGO
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_CARGO                        TYPE        STRING
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method ZIF_FUNCIONARIO~SET_CARGO.
+  me->ZIF_FUNCIONARIO~cargo = i_cargo.
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_FUNCIONARIO_MODELO->ZIF_FUNCIONARIO~SET_DATA_NASC
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_DATA_NASCIMENTO              TYPE        DATS
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method ZIF_FUNCIONARIO~SET_DATA_NASC.
+  me->zif_funcionario~data_nasc = i_data_nascimento.
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_FUNCIONARIO_MODELO->ZIF_FUNCIONARIO~SET_NOME
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_NOME                         TYPE        STRING
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method ZIF_FUNCIONARIO~SET_NOME.
+  me->zif_funcionario~nome = i_nome.
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_FUNCIONARIO_MODELO->ZIF_FUNCIONARIO~SET_SALARIO
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_SALARIO                      TYPE        DEC10_2
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method ZIF_FUNCIONARIO~SET_SALARIO.
+  me->zif_funcionario~salario = i_salario.
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_FUNCIONARIO_MODELO->ZIF_FUNCIONARIO~SET_SOBRENOME
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_SOBRENOME                    TYPE        STRING
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method ZIF_FUNCIONARIO~SET_SOBRENOME.
+  me->zif_funcionario~sobrenome = i_sobrenome.
+endmethod.
+ENDCLASS.

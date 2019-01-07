@@ -1,0 +1,50 @@
+class ZCL_FUNCIONARIO_OPERARIO definition
+  public
+  inheriting from ZCL_FUNCIONARIO_MODELO
+  final
+  create public .
+
+public section.
+*"* public components of class ZCL_FUNCIONARIO_OPERARIO
+*"* do not include other source files here!!!
+
+  data VALE_TRANSPORTE type DEC10_2 .
+
+  methods GET_VALE
+    returning
+      value(R_VALE) type DEC10_2 .
+  methods SET_VALE
+    importing
+      !I_VALE type DEC10_2 .
+protected section.
+*"* protected components of class ZCL_FUNCIONARIO_OPERARIO
+*"* do not include other source files here!!!
+private section.
+*"* private components of class ZCL_FUNCIONARIO_OPERARIO
+*"* do not include other source files here!!!
+ENDCLASS.
+
+
+
+CLASS ZCL_FUNCIONARIO_OPERARIO IMPLEMENTATION.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_FUNCIONARIO_OPERARIO->GET_VALE
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] R_VALE                         TYPE        DEC10_2
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method GET_VALE.
+  r_vale = me->vale_transporte.
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_FUNCIONARIO_OPERARIO->SET_VALE
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_VALE                         TYPE        DEC10_2
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method SET_VALE.
+  me->vale_transporte = i_vale.
+endmethod.
+ENDCLASS.

@@ -1,0 +1,220 @@
+class ZCL_FUNCIONARIO definition
+  public
+  create public .
+
+public section.
+*"* public components of class ZCL_FUNCIONARIO
+*"* do not include other source files here!!!
+
+  types:
+    ty_t_zfuncionario TYPE STANDARD TABLE OF zfuncionario .
+
+  data CPF type CHAR13 .
+
+  methods CONSTRUCTOR
+    importing
+      !I_CPF type CHAR13
+    raising
+      resumable(ZCX_FUNCIONARIO) .
+  methods GET_CPF
+    returning
+      value(R_CPF) type CHAR13 .
+  methods GET_NOME
+    returning
+      value(R_NOME) type CHAR50 .
+  methods GET_SOBRENOME
+    returning
+      value(R_SOBRENOME) type CHAR50 .
+  methods GET_CARGO
+    returning
+      value(R_CARGO) type CHAR50 .
+  methods GET_SALARIO
+    returning
+      value(R_SALARIO) type DEC10_2 .
+  methods SET_CPF
+    importing
+      !I_CPF type CHAR13 .
+  methods SET_NOME
+    importing
+      !I_NOME type CHAR50 .
+  methods SET_SOBRENOME
+    importing
+      !I_SOBRENOME type CHAR50 .
+  methods SET_CARGO
+    importing
+      !I_CARGO type CHAR50 .
+  methods SET_SALARIO
+    importing
+      !I_SALARIO type DEC10_2 .
+  class-methods GET_LISTAGEM
+    returning
+      value(E_T_FUNCINARIO) type ZT_ZFUNCIONARIO .
+protected section.
+*"* protected components of class ZCL_FUNCIONARIO
+*"* do not include other source files here!!!
+private section.
+*"* private components of class ZCL_FUNCIONARIO
+*"* do not include other source files here!!!
+
+  data NOME type CHAR50 .
+  data SOBRENOME type CHAR50 .
+  data CARGO type CHAR50 .
+  data SALARIO type DEC10_2 .
+ENDCLASS.
+
+
+
+CLASS ZCL_FUNCIONARIO IMPLEMENTATION.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_FUNCIONARIO->CONSTRUCTOR
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_CPF                          TYPE        CHAR13
+* | [!CX!] ZCX_FUNCIONARIO
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+METHOD constructor.
+
+  DATA l_zfuncionario TYPE zfuncionario.
+
+  SELECT SINGLE * FROM zfuncionario INTO l_zfuncionario WHERE cpf = i_cpf.
+  IF sy-subrc = 0.
+    me->set_cargo( l_zfuncionario-cargo ).
+    me->set_cpf( l_zfuncionario-cpf ).
+    me->set_nome( l_zfuncionario-nome ).
+    me->set_sobrenome( l_zfuncionario-sobrenome ).
+    me->set_salario( l_zfuncionario-salario ).
+
+  ELSE."Lança exceções - Exercicío 06
+
+    " Esse tipo de exceção encerra o processamento
+    RAISE EXCEPTION TYPE zcx_funcionario
+      EXPORTING
+        textid = zcx_funcionario=>funcionario_nao_encontrado
+        msgv1  = 'Usuário '
+        msgv2  = ' não encontrado'
+        cpf    = i_cpf.
+
+*    " Esse tipo de exceção NÃO encerra o processamento
+*    RAISE RESUMABLE EXCEPTION TYPE zcx_funcionario
+*      EXPORTING
+*        textid = zcx_funcionario=>funcionario_nao_encontrado
+*        msgv1  = 'Usuário '
+*        msgv2  = ' não encontrado'
+*        cpf    = i_cpf.
+
+
+  ENDIF.
+
+ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_FUNCIONARIO->GET_CARGO
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] R_CARGO                        TYPE        CHAR50
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+METHOD get_cargo.
+  r_cargo = me->cargo.
+ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_FUNCIONARIO->GET_CPF
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] R_CPF                          TYPE        CHAR13
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+METHOD get_cpf.
+  r_cpf = me->cpf.
+ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Public Method ZCL_FUNCIONARIO=>GET_LISTAGEM
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] E_T_FUNCINARIO                 TYPE        ZT_ZFUNCIONARIO
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+METHOD get_listagem.
+  SELECT * FROM zfuncionario INTO TABLE e_t_funcinario.
+ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_FUNCIONARIO->GET_NOME
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] R_NOME                         TYPE        CHAR50
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+METHOD get_nome.
+  r_nome = me->nome.
+ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_FUNCIONARIO->GET_SALARIO
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] R_SALARIO                      TYPE        DEC10_2
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+METHOD get_salario.
+  r_salario = me->salario.
+ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_FUNCIONARIO->GET_SOBRENOME
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] R_SOBRENOME                    TYPE        CHAR50
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+METHOD get_sobrenome.
+  r_sobrenome = me->sobrenome.
+ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_FUNCIONARIO->SET_CARGO
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_CARGO                        TYPE        CHAR50
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+METHOD set_cargo.
+  me->cargo = i_cargo.
+ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_FUNCIONARIO->SET_CPF
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_CPF                          TYPE        CHAR13
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+METHOD set_cpf.
+  me->cpf = i_cpf.
+ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_FUNCIONARIO->SET_NOME
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_NOME                         TYPE        CHAR50
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+METHOD set_nome.
+  me->nome = i_nome.
+ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_FUNCIONARIO->SET_SALARIO
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_SALARIO                      TYPE        DEC10_2
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+METHOD set_salario.
+  me->salario = i_salario.
+ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_FUNCIONARIO->SET_SOBRENOME
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_SOBRENOME                    TYPE        CHAR50
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+METHOD set_sobrenome.
+  me->sobrenome = i_sobrenome.
+ENDMETHOD.
+ENDCLASS.

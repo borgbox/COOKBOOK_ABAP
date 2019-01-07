@@ -1,0 +1,298 @@
+class ZCL_GERADOR_ARQUIVO definition
+  public
+  create public .
+
+public section.
+*"* public components of class ZCL_GERADOR_ARQUIVO
+*"* do not include other source files here!!!
+
+  data ZPPGC_GUI_FRONTEND type ref to CL_GUI_FRONTEND_SERVICES .
+
+  methods CONSTRUCTOR
+    importing
+      !I_CAMINHO_ARQ type STRING optional .
+  methods GETNOME_ARQUIVO
+    returning
+      value(R_NOME_ARQUIVO) type STRING .
+  methods SETNOME_ARQUIVO
+    importing
+      !P_NOME_ARQUIVO type STRING .
+  methods GETCONTEUDO_ARQUIVO
+    returning
+      value(R_CONTEUDO_ARQUIVO) type TABLE_OF_STRINGS .
+  methods SETCONTEUDO_ARQUIVO
+    importing
+      !P_CONTEUDO_ARQUIVO type TABLE_OF_STRINGS .
+  methods GETCAMINHO_ARQUIVO
+    returning
+      value(R_CAMINHO_ARQUIVO) type STRING .
+  methods SETCAMINHO_ARQUIVO
+    importing
+      !P_CAMINHO_ARQUIVO type STRING .
+  methods INCREMENTAR_CONTEUDO
+    importing
+      !P_NOVA_LINHA type STRING .
+  methods INVOCAR_SAVE_DIALOG
+    importing
+      !P_NOME_ARQ type STRING
+      !P_CAMINHO_INICIAL type STRING
+    returning
+      value(R_USER_ACTION) type I .
+  methods BAIXAR_ARQ_PC_CLIENT .
+  methods BAIXAR_ARQ_SERVIDOR
+    importing
+      !P_CAMINHO_SERVIDOR type STRING .
+protected section.
+*"* protected components of class ZCL_GERADOR_ARQUIVO
+*"* do not include other source files here!!!
+private section.
+*"* private components of class ZCL_GERADOR_ARQUIVO
+*"* do not include other source files here!!!
+
+  data nome_arquivo type string .
+  data conteudo_arquivo type table_of_strings .
+  data caminho_arquivo type string .
+ENDCLASS.
+
+
+
+CLASS ZCL_GERADOR_ARQUIVO IMPLEMENTATION.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_GERADOR_ARQUIVO->BAIXAR_ARQ_PC_CLIENT
+* +-------------------------------------------------------------------------------------------------+
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method baixar_arq_pc_client.
+
+  data: vl_excecao type ref to cx_root,
+        vl_aux_conteudo_arquivo type table_of_strings,
+        vl_aux_caminho_arquivo type string.
+
+  vl_aux_caminho_arquivo = getcaminho_arquivo( ).
+  vl_aux_conteudo_arquivo = getconteudo_arquivo( ).
+
+  try .
+      zppgc_gui_frontend->gui_download(
+        exporting
+*    BIN_FILESIZE              =
+          filename                  = vl_aux_caminho_arquivo
+        changing
+          data_tab                  = vl_aux_conteudo_arquivo
+      exceptions
+        file_write_error          = 1
+        no_batch                  = 2
+        gui_refuse_filetransfer   = 3
+        invalid_type              = 4
+        no_authority              = 5
+        unknown_error             = 6
+        header_not_allowed        = 7
+        separator_not_allowed     = 8
+        filesize_not_allowed      = 9
+        header_too_long           = 10
+        dp_error_create           = 11
+        dp_error_send             = 12
+        dp_error_write            = 13
+        unknown_dp_error          = 14
+        access_denied             = 15
+        dp_out_of_memory          = 16
+        disk_full                 = 17
+        dp_timeout                = 18
+        file_not_found            = 19
+        dataprovider_exception    = 20
+        control_flush_error       = 21
+        not_supported_by_gui      = 22
+        error_no_gui              = 23
+        others                    = 24
+      ).
+
+    catch cx_root into vl_excecao.
+      message vl_excecao type 'I'.
+
+  endtry.
+
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_GERADOR_ARQUIVO->BAIXAR_ARQ_SERVIDOR
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] P_CAMINHO_SERVIDOR             TYPE        STRING
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method baixar_arq_servidor.
+
+  try .
+
+*----- Variavel representando o arquivo com o caminha do servido
+      data: vl_caminho_compl type string,
+            vl_aux_nome_arquivo type string,
+            vl_aux_it_conteudo type table_of_strings,
+            vl_excecao type ref to cx_root.
+
+      vl_aux_nome_arquivo = getnome_arquivo( ).
+      vl_aux_it_conteudo = getconteudo_arquivo( ).
+
+*----- Cria o caminho do arquivo com o caminho completo
+      concatenate p_caminho_servidor '\' vl_aux_nome_arquivo  into vl_caminho_compl.
+*----- Definição de Field Symbol
+      field-symbols <linha_chave_valor> type line of table_of_strings.
+*----- Preenche o arquivo do servidor
+      open dataset vl_caminho_compl for output in text mode encoding default.
+      loop at vl_aux_it_conteudo assigning <linha_chave_valor>.
+        transfer <linha_chave_valor> to vl_caminho_compl.
+        clear <linha_chave_valor>.
+      endloop.
+*----- Grava o arquivo
+      close dataset vl_caminho_compl.
+
+    catch cx_root into vl_excecao.
+      message vl_excecao type 'I'.
+  endtry.
+
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_GERADOR_ARQUIVO->CONSTRUCTOR
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_CAMINHO_ARQ                  TYPE        STRING(optional)
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+METHOD constructor.
+  me->setcaminho_arquivo(
+    EXPORTING
+      p_caminho_arquivo = i_caminho_arq ).
+ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_GERADOR_ARQUIVO->GETCAMINHO_ARQUIVO
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] R_CAMINHO_ARQUIVO              TYPE        STRING
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method getcaminho_arquivo.
+  r_caminho_arquivo = me->caminho_arquivo.
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_GERADOR_ARQUIVO->GETCONTEUDO_ARQUIVO
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] R_CONTEUDO_ARQUIVO             TYPE        TABLE_OF_STRINGS
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method getconteudo_arquivo.
+  r_conteudo_arquivo = me->conteudo_arquivo.
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_GERADOR_ARQUIVO->GETNOME_ARQUIVO
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] R_NOME_ARQUIVO                 TYPE        STRING
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method getnome_arquivo.
+  r_nome_arquivo = me->nome_arquivo.
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_GERADOR_ARQUIVO->INCREMENTAR_CONTEUDO
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] P_NOVA_LINHA                   TYPE        STRING
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method incrementar_conteudo.
+
+  data: vl_conteudo_arq_aux type table_of_strings.
+  vl_conteudo_arq_aux = getconteudo_arquivo( ).
+
+*----- Incrementa a nova linha na tabela auxiliar.
+  append p_nova_linha to vl_conteudo_arq_aux.
+*----- Seta a nova tabela com o atributo adicional no atributo de classe correpsondente
+  setconteudo_arquivo( vl_conteudo_arq_aux ).
+
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_GERADOR_ARQUIVO->INVOCAR_SAVE_DIALOG
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] P_NOME_ARQ                     TYPE        STRING
+* | [--->] P_CAMINHO_INICIAL              TYPE        STRING
+* | [<-()] R_USER_ACTION                  TYPE        I
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method invocar_save_dialog.
+
+  data: vl_excecao type ref to cx_root,
+        ld_fullpath type string,
+        ld_path type string,
+        vl_user_action type i,
+        vl_compl_caminho_arquivo type string.
+
+  create object zppgc_gui_frontend.
+
+  try .
+      zppgc_gui_frontend->file_save_dialog(
+         exporting
+*      WINDOW_TITLE         =     " Window Title
+           default_extension    =    'TXT' " Default Extension
+           default_file_name    =     p_nome_arq
+*      WITH_ENCODING        =
+*      FILE_FILTER          =     " File Type Filter Table
+           initial_directory    =     p_caminho_inicial
+*      PROMPT_ON_OVERWRITE  = 'X'
+         changing
+           filename             =    ld_fullpath " File Name to Save
+           path                 =    ld_path " Path to File
+           fullpath             =    vl_compl_caminho_arquivo " Path + File Name
+           user_action          =    vl_user_action " User Action (C Class Const ACTION_OK, ACTION_OVERWRITE etc)
+*      FILE_ENCODING        =
+         exceptions
+           cntl_error           = 1
+           error_no_gui         = 2
+           not_supported_by_gui = 3
+           others               = 4
+       ).
+      if sy-subrc <> 0.
+*   MESSAGE ID SY-MSGID TYPE SY-MSGTY NUMBER SY-MSGNO
+*              WITH SY-MSGV1 SY-MSGV2 SY-MSGV3 SY-MSGV4.
+      endif.
+
+      setcaminho_arquivo( vl_compl_caminho_arquivo ).
+
+    catch cx_root into vl_excecao.
+      message vl_excecao type 'I'.
+  endtry.
+
+  r_user_action = vl_user_action.
+
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_GERADOR_ARQUIVO->SETCAMINHO_ARQUIVO
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] P_CAMINHO_ARQUIVO              TYPE        STRING
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method setcaminho_arquivo.
+  me->caminho_arquivo = p_caminho_arquivo.
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_GERADOR_ARQUIVO->SETCONTEUDO_ARQUIVO
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] P_CONTEUDO_ARQUIVO             TYPE        TABLE_OF_STRINGS
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method setconteudo_arquivo.
+  me->conteudo_arquivo = p_conteudo_arquivo[].
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_GERADOR_ARQUIVO->SETNOME_ARQUIVO
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] P_NOME_ARQUIVO                 TYPE        STRING
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method setnome_arquivo.
+  me->nome_arquivo = p_nome_arquivo.
+endmethod.
+ENDCLASS.

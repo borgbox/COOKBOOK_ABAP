@@ -1,0 +1,56 @@
+class ZCL_ZFUNCIONARIO_WS2 definition
+  public
+  final
+  create public .
+
+public section.
+*"* public components of class ZCL_ZFUNCIONARIO_WS2
+*"* do not include other source files here!!!
+
+  interfaces IF_HTTP_EXTENSION .
+protected section.
+*"* protected components of class ZCL_ZFUNCIONARIO_WS2
+*"* do not include other source files here!!!
+private section.
+*"* private components of class ZCL_ZFUNCIONARIO_WS2
+*"* do not include other source files here!!!
+ENDCLASS.
+
+
+
+CLASS ZCL_ZFUNCIONARIO_WS2 IMPLEMENTATION.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_ZFUNCIONARIO_WS2->IF_HTTP_EXTENSION~HANDLE_REQUEST
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] SERVER                         TYPE REF TO IF_HTTP_SERVER
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method IF_HTTP_EXTENSION~HANDLE_REQUEST.
+
+  DATA: l_param1   TYPE string,
+        l_resposta TYPE string,
+        l_func     TYPE zfuncionario,
+        l_salario_aux TYPE string.
+
+  server->request->get_cdata( ).
+
+  l_param1 = server->request->get_form_field( 'CPF' ).
+
+  SELECT SINGLE * FROM zfuncionario INTO l_func WHERE cpf = l_param1.
+
+  IF sy-subrc <> 0.
+    server->response->set_cdata( 'Funcionário não encontrado' ).
+  ELSE.
+    CONCATENATE l_resposta 'CPF:' l_func-cpf cl_abap_char_utilities=>cr_lf INTO l_resposta.
+    CONCATENATE l_resposta 'NOME:' l_func-nome cl_abap_char_utilities=>cr_lf INTO l_resposta.
+    CONCATENATE l_resposta 'SOBRENOME' l_func-sobrenome cl_abap_char_utilities=>cr_lf INTO l_resposta.
+    CONCATENATE l_resposta 'CARGO:' l_func-cargo cl_abap_char_utilities=>cr_lf INTO l_resposta.
+    l_salario_aux =  l_func-salario.
+    CONCATENATE l_resposta 'SALARIO:' l_salario_aux cl_abap_char_utilities=>cr_lf INTO l_resposta.
+    server->response->set_cdata( l_resposta ).
+  ENDIF.
+
+
+endmethod.
+ENDCLASS.

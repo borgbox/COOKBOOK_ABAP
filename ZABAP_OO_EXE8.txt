@@ -1,0 +1,127 @@
+*&---------------------------------------------------------------------*
+*& Report  ZABAP_OO_EXE8
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT  zabap_oo_exe8.
+
+
+START-OF-SELECTION.
+
+  DATA: lt_produtos      TYPE STANDARD TABLE OF REF TO zcl_produto_modelo,
+        lo_produto       TYPE REF TO zcl_produto_modelo,
+        lo_produto_ind   TYPE REF TO zcl_produto_ind,
+        lo_produto_bruto TYPE REF TO zcl_produto_bruto.
+
+*********************************************
+*** Instanciação Um a Um
+*********************************************
+  CREATE OBJECT lo_produto_ind
+    EXPORTING
+      i_codigo       = '001'
+      i_descricao    = 'Produto 01'
+      i_preco        = '23.02'
+      i_estoque      = 3
+      i_tipo         = zif_produto=>tipo_produto-industrializado
+      i_ipi          = '12.04'
+*    EXCEPTIONS
+*      others         = 1
+    .
+  IF sy-subrc <> 0.
+*   MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+*              WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+  ENDIF.
+
+  APPEND lo_produto_ind TO lt_produtos.
+
+  CREATE OBJECT lo_produto_bruto
+  EXPORTING
+    i_codigo       = '002'
+    i_descricao    = 'Produto 03'
+    i_preco        = '21.02'
+    i_estoque      = 3
+    i_tipo         = zif_produto=>tipo_produto-bruto
+*    EXCEPTIONS
+*      others         = 1
+  .
+  IF sy-subrc <> 0.
+*   MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+*              WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+  ENDIF.
+
+  APPEND lo_produto_bruto TO lt_produtos.
+
+*********************************************
+*** Instanciação Usando o método estático
+*********************************************
+  zcl_produto_bruto=>get_instancia(
+    EXPORTING
+      i_codigo      =     '003'
+      i_descricao   =     'Produto 03'
+      i_preco       =     '12.05'
+      i_estoque     =     5
+      i_tipo        =     zif_produto=>tipo_produto-industrializado
+    RECEIVING
+      r_obj_produto =     lo_produto ).
+
+  APPEND lo_produto TO lt_produtos.
+
+
+*** Percorre objetos
+  DATA: l_descricao TYPE char50,
+        l_codigo    TYPE char50,
+        l_preco     TYPE dec10_2,
+        l_estoque   TYPE i,
+        l_tipo      TYPE char50,
+        l_ipi       TYPE dec10_2.
+
+*** Verifica instância
+  DATA: lo_ref        TYPE REF TO cl_abap_typedescr,
+        l_nome_classe TYPE string.
+
+  LOOP AT lt_produtos INTO lo_produto.
+
+    " Get_IPI somente existe na classe filha - Industrializado
+*    lo_produto->get_ipi( ).
+
+    lo_ref = cl_abap_typedescr=>describe_by_object_ref( lo_produto ).
+
+    l_nome_classe = lo_ref->get_relative_name(  ).
+
+    WRITE:/ 'Código: ', l_codigo    .
+    WRITE:/ 'Descrição: ', l_descricao .
+    WRITE:/ 'Preço: ', l_preco     .
+    WRITE:/ 'Estoque: ', l_estoque   .
+    WRITE:/ 'Tipo: ', l_tipo      .
+
+    IF l_nome_classe <> 'ZCL_PRODUTO_IND'.
+
+      WRITE:/ '****** PRODUTO BRUTO ******'.
+
+      l_descricao = lo_produto->zif_produto~get_descricao( ).
+      l_codigo    = lo_produto->zif_produto~get_codigo( ).
+      l_preco     = lo_produto->zif_produto~get_preco( ).
+      l_estoque   = lo_produto->zif_produto~get_estoque( ).
+      l_tipo      = lo_produto->zif_produto~get_tipo( ).
+
+    ELSE.
+
+      WRITE:/ '****** PRODUTO INDUSTRIALIZADO ******'.
+
+      lo_produto_ind ?= lo_produto.
+
+      l_descricao = lo_produto_ind->zif_produto~get_descricao( ).
+      l_codigo    = lo_produto_ind->zif_produto~get_codigo( ).
+      l_preco     = lo_produto_ind->zif_produto~get_preco( ).
+      l_estoque   = lo_produto_ind->zif_produto~get_estoque( ).
+      l_tipo      = lo_produto_ind->zif_produto~get_tipo( ).
+      l_ipi       = lo_produto_ind->get_ipi( ).
+
+    WRITE:/ 'IPI: ', l_ipi       .
+
+    ENDIF.
+
+  ENDLOOP.

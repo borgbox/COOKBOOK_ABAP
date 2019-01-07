@@ -1,0 +1,34 @@
+*&---------------------------------------------------------------------*
+*& Report  ZABAP_OO_ARQ
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT  zabap_oo_arq.
+
+PARAMETERS: p_arq  TYPE string OBLIGATORY,
+            p_cont TYPE string.
+
+
+
+START-OF-SELECTION.
+
+  DATA lo_gerador_arq TYPE REF TO zcl_gerador_arquivo.
+
+  CREATE OBJECT lo_gerador_arq.
+
+*** Seta caminho através de popup
+  lo_gerador_arq->invocar_save_dialog(
+    EXPORTING
+      p_nome_arq        = p_arq
+      p_caminho_inicial = 'C:\TESTE' ).
+
+*** Incrementa conteúdo linha a linha
+  lo_gerador_arq->incrementar_conteudo(
+    EXPORTING
+      p_nova_linha = p_cont  ).
+
+*** Gera arquivo na máquin cliente
+  lo_gerador_arq->baixar_arq_pc_client( ).

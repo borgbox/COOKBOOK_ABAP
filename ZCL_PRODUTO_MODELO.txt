@@ -1,0 +1,195 @@
+class ZCL_PRODUTO_MODELO definition
+  public
+  abstract
+  create public .
+
+public section.
+*"* public components of class ZCL_PRODUTO_MODELO
+*"* do not include other source files here!!!
+
+  interfaces ZIF_PRODUTO .
+
+  methods CONSTRUCTOR
+    importing
+      !I_CODIGO type CHAR50
+      !I_DESCRICAO type CHAR50
+      !I_PRECO type DEC10_2
+      !I_ESTOQUE type I
+      !I_TIPO type CHAR50 .
+  class-methods GET_INSTANCIA
+    importing
+      !I_CODIGO type CHAR50
+      !I_DESCRICAO type CHAR50
+      !I_PRECO type DEC10_2
+      !I_ESTOQUE type I
+      !I_TIPO type CHAR50
+    returning
+      value(R_OBJ_PRODUTO) type ref to ZCL_PRODUTO_MODELO .
+protected section.
+*"* protected components of class ZCL_PRODUTO_MODELO
+*"* do not include other source files here!!!
+private section.
+*"* private components of class ZCL_PRODUTO_MODELO
+*"* do not include other source files here!!!
+ENDCLASS.
+
+
+
+CLASS ZCL_PRODUTO_MODELO IMPLEMENTATION.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_PRODUTO_MODELO->CONSTRUCTOR
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_CODIGO                       TYPE        CHAR50
+* | [--->] I_DESCRICAO                    TYPE        CHAR50
+* | [--->] I_PRECO                        TYPE        DEC10_2
+* | [--->] I_ESTOQUE                      TYPE        I
+* | [--->] I_TIPO                         TYPE        CHAR50
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method CONSTRUCTOR.
+
+  me->ZIF_PRODUTO~codigo    = i_codigo.
+  me->ZIF_PRODUTO~descricao = i_descricao.
+  me->ZIF_PRODUTO~estoque   = i_estoque.
+  me->ZIF_PRODUTO~preco     = i_preco.
+  me->ZIF_PRODUTO~tipo      = i_tipo.
+
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Public Method ZCL_PRODUTO_MODELO=>GET_INSTANCIA
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_CODIGO                       TYPE        CHAR50
+* | [--->] I_DESCRICAO                    TYPE        CHAR50
+* | [--->] I_PRECO                        TYPE        DEC10_2
+* | [--->] I_ESTOQUE                      TYPE        I
+* | [--->] I_TIPO                         TYPE        CHAR50
+* | [<-()] R_OBJ_PRODUTO                  TYPE REF TO ZCL_PRODUTO_MODELO
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+METHOD get_instancia.
+
+  CASE i_tipo.
+    WHEN zif_produto=>tipo_produto-bruto.
+      CREATE OBJECT r_obj_produto TYPE zcl_produto_bruto
+        EXPORTING
+          i_codigo       = '001'
+          i_descricao    = 'Produto 01'
+          i_preco        = '23.02'
+          i_estoque      = 3
+          i_tipo         = zif_produto=>tipo_produto-bruto.
+    WHEN zif_produto=>tipo_produto-industrializado.
+      CREATE OBJECT r_obj_produto TYPE zcl_produto_ind
+        EXPORTING
+          i_codigo       = '001'
+          i_descricao    = 'Produto 01'
+          i_preco        = '23.02'
+          i_estoque      = 3
+          i_tipo         = zif_produto=>tipo_produto-industrializado.
+    WHEN OTHERS.
+      MESSAGE 'Erro: Tipo não existente' TYPE 'E'.
+  ENDCASE.
+
+ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_PRODUTO_MODELO->ZIF_PRODUTO~GET_CODIGO
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] E_CODIGO                       TYPE        CHAR50
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method ZIF_PRODUTO~GET_CODIGO.
+  e_codigo = me->zif_produto~codigo.
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_PRODUTO_MODELO->ZIF_PRODUTO~GET_DESCRICAO
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] E_DESCRICAO                    TYPE        CHAR50
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method ZIF_PRODUTO~GET_DESCRICAO.
+    e_descricao = me->zif_produto~descricao.
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_PRODUTO_MODELO->ZIF_PRODUTO~GET_ESTOQUE
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] E_ESTOQUE                      TYPE        I
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method ZIF_PRODUTO~GET_ESTOQUE.
+  e_estoque = me->zif_produto~estoque.
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_PRODUTO_MODELO->ZIF_PRODUTO~GET_PRECO
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] E_PRECO                        TYPE        DEC10_2
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method ZIF_PRODUTO~GET_PRECO.
+      e_preco = me->zif_produto~preco.
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_PRODUTO_MODELO->ZIF_PRODUTO~GET_TIPO
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] E_TIPO                         TYPE        CHAR50
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method ZIF_PRODUTO~GET_TIPO.
+  e_tipo = me->zif_produto~tipo.
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_PRODUTO_MODELO->ZIF_PRODUTO~SET_CODIGO
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_CODIGO                       TYPE        CHAR50
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method ZIF_PRODUTO~SET_CODIGO.
+  me->zif_produto~codigo = i_codigo.
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_PRODUTO_MODELO->ZIF_PRODUTO~SET_DESCRICAO
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_DESCRICAO                    TYPE        CHAR50
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method ZIF_PRODUTO~SET_DESCRICAO.
+    me->zif_produto~descricao = i_descricao.
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_PRODUTO_MODELO->ZIF_PRODUTO~SET_ESTOQUE
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_ESTOQUE                      TYPE        I
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method ZIF_PRODUTO~SET_ESTOQUE.
+  me->zif_produto~estoque = i_estoque.
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_PRODUTO_MODELO->ZIF_PRODUTO~SET_PRECO
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_PRECO                        TYPE        DEC10_2
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method ZIF_PRODUTO~SET_PRECO.
+      me->zif_produto~preco = i_preco.
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_PRODUTO_MODELO->ZIF_PRODUTO~SET_TIPO
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] I_TIPO                         TYPE        CHAR50
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method ZIF_PRODUTO~SET_TIPO.
+  me->zif_produto~tipo = i_tipo.
+endmethod.
+ENDCLASS.

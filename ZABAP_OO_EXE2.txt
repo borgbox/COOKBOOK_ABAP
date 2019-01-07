@@ -1,0 +1,110 @@
+*&---------------------------------------------------------------------*
+*& Report  ZABAP_OO_EXE2
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT  zabap_oo_exe2.
+
+TABLES usr02.
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_usuARIO DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS lcl_usuario DEFINITION.
+
+  PUBLIC SECTION.
+
+
+    TYPES: ty_range_data TYPE RANGE OF dats,
+           ty_t_usr02    TYPE STANDARD TABLE OF usr02.
+
+    CLASS-METHODS: busca_usuarios
+                   IMPORTING i_bname TYPE xubname       OPTIONAL
+                             i_data  TYPE ty_range_data OPTIONAL
+                   EXPORTING e_t_usuarios TYPE  ty_t_usr02,
+
+                   apresenta_listagem  IMPORTING i_itab TYPE ty_t_usr02.
+
+ENDCLASS.                    "lcl_usuARIO DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_usuario IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS lcl_usuario IMPLEMENTATION.
+
+  METHOD busca_usuarios.
+
+    IF i_bname IS NOT INITIAL.
+      SELECT * FROM usr02 INTO TABLE e_t_usuarios WHERE bname = i_bname.
+    ELSEIF i_data[] IS NOT INITIAL.
+      SELECT * FROM usr02 INTO TABLE e_t_usuarios WHERE erdat IN i_data.
+    ENDIF.
+
+  ENDMETHOD.                    "busca_usuarios
+
+  METHOD apresenta_listagem.
+
+    DATA: lo_alv_oo  TYPE REF TO cl_salv_table,
+          lt_usuario TYPE ty_t_usr02.
+
+    lt_usuario[] = i_itab[].
+
+    TRY .
+        cl_salv_table=>factory(
+          IMPORTING
+            r_salv_table   =  lo_alv_oo
+          CHANGING
+            t_table        = lt_usuario ).
+      CATCH cx_salv_msg.
+        MESSAGE 'Erro ao apresentar saída' TYPE 'E'.
+    ENDTRY.
+
+
+    lo_alv_oo->display( ).
+
+
+  ENDMETHOD.                    "apresenta_listagem
+
+ENDCLASS.                    "lcl_usuario IMPLEMENTATION
+
+
+*** SELECTION SCREEN
+PARAMETERS:    p_usr TYPE usr02-bname.
+SELECT-OPTIONS s_dt FOR usr02-erdat.
+
+*** START-OF-SELECTION.
+START-OF-SELECTION.
+
+
+  DATA it_usuario TYPE STANDARD TABLE OF usr02.
+
+  lcl_usuario=>busca_usuarios(
+    EXPORTING
+      i_bname      = p_usr
+      i_data       = s_dt[]
+    IMPORTING
+      e_t_usuarios = it_usuario
+    EXCEPTIONS
+      OTHERS       = 1  ).
+  IF sy-subrc <> 0.
+*   MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+*              WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+  ENDIF.
+
+  lcl_usuario=>apresenta_listagem(
+    EXPORTING
+      i_itab = it_usuario
+*    EXCEPTIONS
+*      others = 1
+  ).
+  IF sy-subrc <> 0.
+*   MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+*              WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+  ENDIF.

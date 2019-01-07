@@ -1,0 +1,104 @@
+class ZCL_PRODUTO_IND definition
+  public
+  inheriting from ZCL_PRODUTO_MODELO
+  final
+  create public .
+
+public section.
+*"* public components of class ZCL_PRODUTO_IND
+*"* do not include other source files here!!!
+
+  data IPI type CHAR50 .
+
+  methods CONSTRUCTOR
+    importing
+      !I_CODIGO type CHAR50
+      !I_DESCRICAO type CHAR50
+      !I_PRECO type DEC10_2
+      !I_ESTOQUE type I
+      !I_TIPO type CHAR50
+      !I_IPI type DEC10_2 optional .
+  methods GET_IPI
+    returning
+      value(E_IPI) type DEC10_2 .
+  methods SET_IPI
+    importing
+      !I_IPI type DEC10_2 .
+
+  methods ZIF_PRODUTO~GET_DESCRICAO
+    redefinition .
+protected section.
+*"* protected components of class ZCL_PRODUTO_IND
+*"* do not include other source files here!!!
+private section.
+*"* private components of class ZCL_PRODUTO_IND
+*"* do not include other source files here!!!
+ENDCLASS.
+
+
+
+CLASS ZCL_PRODUTO_IND IMPLEMENTATION.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_PRODUTO_IND->CONSTRUCTOR
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_CODIGO                       TYPE        CHAR50
+* | [--->] I_DESCRICAO                    TYPE        CHAR50
+* | [--->] I_PRECO                        TYPE        DEC10_2
+* | [--->] I_ESTOQUE                      TYPE        I
+* | [--->] I_TIPO                         TYPE        CHAR50
+* | [--->] I_IPI                          TYPE        DEC10_2(optional)
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+METHOD constructor.
+  CALL METHOD super->constructor
+    EXPORTING
+      i_codigo    = i_codigo
+      i_descricao = i_descricao
+      i_estoque   = i_estoque
+      i_preco     = i_preco
+      i_tipo      = i_tipo.
+
+*** Atributo especifico da instância
+  IF i_ipi IS INITIAL.
+    me->ipi = i_preco * '0.82'.
+  ENDIF.
+
+
+ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_PRODUTO_IND->GET_IPI
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] E_IPI                          TYPE        DEC10_2
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method GET_IPI.
+  e_ipi = me->ipi.
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_PRODUTO_IND->SET_IPI
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_IPI                          TYPE        DEC10_2
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+METHOD set_ipi.
+  me->ipi = i_ipi.
+ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_PRODUTO_IND->ZIF_PRODUTO~GET_DESCRICAO
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] E_DESCRICAO                    TYPE        CHAR50
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method ZIF_PRODUTO~GET_DESCRICAO.
+CALL METHOD SUPER->ZIF_PRODUTO~GET_DESCRICAO
+  RECEIVING
+    E_DESCRICAO = E_DESCRICAO.
+
+CONCATENATE 'IND' E_DESCRICAO INTO E_DESCRICAO.
+
+endmethod.
+ENDCLASS.

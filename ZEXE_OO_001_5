@@ -1,0 +1,46 @@
+*&---------------------------------------------------------------------*
+*& Report  ZEXE_OO_001
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT  zexe_oo_001_5.
+
+*** SELECTION SCREEN
+PARAMETERS: p_n1 TYPE dec10_2,
+            p_n2 TYPE dec10_2,
+            p_op TYPE char1.
+
+*** VARIÁVEIS
+DATA gv_resultado TYPE dec10_2.
+
+*** START-OF-SELECTION.
+START-OF-SELECTION.
+
+*** DECLARAÇÃO DO OBJETO
+  DATA lo_calculadora TYPE REF TO zcl_calculadora.
+
+*** INSTANCIAÇÃO - O acesso a atributos e métodos sem instanciação gera erro
+  CREATE OBJECT lo_calculadora
+    EXPORTING
+      n1 = p_n1
+      n2 = p_n2.
+
+*** Atributos são agora inacessiveis
+*lo_calculadora->
+
+  CASE p_op.
+    WHEN '+'.
+      lo_calculadora->soma( IMPORTING resultado = gv_resultado ).
+    WHEN '*'.
+      lo_calculadora->multiplicacao( IMPORTING resultado = gv_resultado ).
+    WHEN '/'.
+      lo_calculadora->divisao( IMPORTING resultado = gv_resultado ).
+    WHEN '-'.
+      lo_calculadora->subtracao( IMPORTING resultado = gv_resultado ).
+  ENDCASE.
+
+*** Resultado pode ser um atributo também - Transportar o atributo bem como o métodos de apresentação
+  WRITE:/ gv_resultado.

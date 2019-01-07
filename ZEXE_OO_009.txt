@@ -1,0 +1,115 @@
+*&---------------------------------------------------------------------*
+*& Report  ZEXE_OO_008
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT  zexe_oo_009.
+
+DATA: go_zca_funcionario TYPE REF TO zca_funcionario_pers,
+      go_zcl_funcionario TYPE REF TO zcl_funcionario_pers.
+
+PARAMETERS: p_cpf TYPE char13,
+            p_nome TYPE char50,
+            p_sobr TYPE char50,
+            p_sal  TYPE dec10_2,
+            p_tp   TYPE char50,
+            p_ins RADIOBUTTON GROUP g1,
+            p_del RADIOBUTTON GROUP g1,
+            p_ler RADIOBUTTON GROUP g1,
+            p_mod RADIOBUTTON GROUP g1.
+
+AT SELECTION-SCREEN.
+
+    go_zca_funcionario = zca_funcionario_pers=>agent.
+
+  IF p_ins = 'X'.
+    TRY .
+        go_zcl_funcionario = go_zca_funcionario->create_persistent( p_cpf ).
+        go_zcl_funcionario->set_cargo( p_tp ).
+        go_zcl_funcionario->set_nome( p_nome ).
+        go_zcl_funcionario->set_sobrenome( p_sobr ).
+        go_zcl_funcionario->set_salario( p_sal ).
+        COMMIT WORK AND WAIT.
+
+      CATCH cx_os_object_existing.
+        MESSAGE 'Registro já existe' TYPE 'E'.
+    ENDTRY.
+
+  ENDIF.
+
+  IF p_mod = 'X'.
+
+    TRY .
+
+        go_zcl_funcionario = go_zca_funcionario->get_persistent( p_cpf ).
+        go_zcl_funcionario->set_cargo( p_tp ).
+        go_zcl_funcionario->set_nome( p_nome ).
+        go_zcl_funcionario->set_sobrenome( p_sobr ).
+        go_zcl_funcionario->set_salario( p_sal ).
+        COMMIT WORK AND WAIT.
+      CATCH cx_os_object_not_found.
+
+    ENDTRY.
+
+  ENDIF.
+
+  IF p_del = 'X'.
+
+    TRY .
+        go_zca_funcionario->delete_persistent( p_cpf ).
+        COMMIT WORK AND WAIT.
+      CATCH cx_os_object_not_existing.
+
+    ENDTRY.
+
+
+  ENDIF.
+
+
+  IF p_ler = 'X'.
+
+    DATA lt_obj TYPE osreftab.
+    DATA ls_obj TYPE osref.
+
+    DATA lo_query TYPE REF TO if_os_query.
+
+    TRY .
+
+        lo_query = cl_os_system=>get_query_manager( )->create_query(
+                                                i_filter = 'NOME = PAR1' ).
+
+        lt_obj = zca_funcionario_pers=>agent->if_os_ca_persistency~get_persistent_by_query(
+                      i_par1 = p_nome
+                      i_query = lo_query ).
+
+      CATCH cx_os_query_error.
+
+      CATCH cx_os_object_not_found.
+
+    ENDTRY.
+
+    LOOP AT lt_obj INTO ls_obj.
+
+      TRY .
+          go_zcl_funcionario  ?= ls_obj.
+
+          p_cpf  = go_zcl_funcionario->get_cpf( ).
+          p_nome = go_zcl_funcionario->get_nome( ).
+          p_sobr = go_zcl_funcionario->get_sobrenome( ).
+          p_sal  = go_zcl_funcionario->get_salario( ).
+          p_tp   = go_zcl_funcionario->get_cargo( ).
+
+        catch cx_os_object_not_found.
+
+        CATCH cx_sy_move_cast_error.
+
+      ENDTRY.
+
+    ENDLOOP.
+
+  ENDIF.
+
+START-OF-SELECTION.

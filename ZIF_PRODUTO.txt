@@ -1,0 +1,47 @@
+*"* components of interface ZIF_PRODUTO
+interface ZIF_PRODUTO
+  public .
+
+
+  data CODIGO type CHAR50 .
+  data DESCRICAO type CHAR50 .
+  data PRECO type DEC10_2 .
+  data ESTOQUE type I .
+  constants:
+    BEGIN OF tipo_produto,
+               bruto TYPE char50 VALUE 'BRUTO',
+               industrializado TYPE char50 VALUE 'INDUSTRIALIZADO',
+             END OF tipo_produto .
+  data TIPO type CHAR50 .
+
+  methods SET_CODIGO
+    importing
+      !I_CODIGO type CHAR50 .
+  methods SET_DESCRICAO
+    importing
+      !I_DESCRICAO type CHAR50 .
+  methods SET_PRECO
+    importing
+      !I_PRECO type DEC10_2 .
+  methods SET_ESTOQUE
+    importing
+      !I_ESTOQUE type I .
+  methods SET_TIPO
+    returning
+      value(I_TIPO) type CHAR50 .
+  methods GET_CODIGO
+    returning
+      value(E_CODIGO) type CHAR50 .
+  methods GET_DESCRICAO
+    returning
+      value(E_DESCRICAO) type CHAR50 .
+  methods GET_PRECO
+    returning
+      value(E_PRECO) type DEC10_2 .
+  methods GET_ESTOQUE
+    returning
+      value(E_ESTOQUE) type I .
+  methods GET_TIPO
+    returning
+      value(E_TIPO) type CHAR50 .
+endinterface.

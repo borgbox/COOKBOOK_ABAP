@@ -1,0 +1,83 @@
+class ZCL_FUNCIONARIO_GERENTE definition
+  public
+  inheriting from ZCL_FUNCIONARIO_MODELO
+  final
+  create public .
+
+public section.
+*"* public components of class ZCL_FUNCIONARIO_GERENTE
+*"* do not include other source files here!!!
+
+  data VERBA_TERNO type DEC10_2 .
+
+  methods SET_VERBA_TERNO
+    importing
+      !I_VERBA type DEC10_2 .
+  methods GET_VERBA_TERNO
+    returning
+      value(R_VERBA_TERNO) type DEC10_2 .
+
+  methods ZIF_FUNCIONARIO~SET_SALARIO
+    redefinition .
+  methods ZIF_FUNCIONARIO~GET_SALARIO
+    redefinition .
+protected section.
+*"* protected components of class ZCL_FUNCIONARIO_GERENTE
+*"* do not include other source files here!!!
+private section.
+*"* private components of class ZCL_FUNCIONARIO_GERENTE
+*"* do not include other source files here!!!
+ENDCLASS.
+
+
+
+CLASS ZCL_FUNCIONARIO_GERENTE IMPLEMENTATION.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_FUNCIONARIO_GERENTE->GET_VERBA_TERNO
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] R_VERBA_TERNO                  TYPE        DEC10_2
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method GET_VERBA_TERNO.
+  r_verba_terno = me->verba_terno.
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_FUNCIONARIO_GERENTE->SET_VERBA_TERNO
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_VERBA                        TYPE        DEC10_2
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method SET_VERBA_TERNO.
+  me->verba_terno = i_verba.
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_FUNCIONARIO_GERENTE->ZIF_FUNCIONARIO~GET_SALARIO
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] R_SALARIO                      TYPE        DEC10_2
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+method ZIF_FUNCIONARIO~GET_SALARIO.
+*CALL METHOD SUPER->ZIF_FUNCIONARIO~GET_SALARIO
+*  RECEIVING
+*    R_SALARIO =
+*    .
+R_SALARIO = ME->zif_funcionario~salario * 5.
+endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_FUNCIONARIO_GERENTE->ZIF_FUNCIONARIO~SET_SALARIO
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_SALARIO                      TYPE        DEC10_2
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+METHOD zif_funcionario~set_salario.
+*  CALL METHOD super->zif_funcionario~set_salario
+*    EXPORTING
+*      i_salario = i_salario.
+  me->zif_funcionario~salario = i_salario * 5."  = i_salario * 5.
+
+ENDMETHOD.
+ENDCLASS.

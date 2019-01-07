@@ -1,0 +1,101 @@
+*&---------------------------------------------------------------------*
+*& Report  ZABAP_OO_EXE3
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT  zabap_oo_exe4_estatico.
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_usuario DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS lcl_usuario DEFINITION.
+
+  PUBLIC SECTION.
+
+    EVENTS usuario_nao_encontrado EXPORTING value(bname_nao_encontrado) TYPE xubname.
+
+    DATA usuario TYPE usr02.
+
+    METHODS: constructor IMPORTING i_bname TYPE xubname,
+    get_usuario RETURNING value(r_usuario) TYPE usr02,
+    get_dias_ultimo_login RETURNING value(r_dias) TYPE i.
+
+ENDCLASS.                    "lcl_usuario DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_usuario IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS lcl_usuario IMPLEMENTATION.
+
+  METHOD constructor.
+    SELECT SINGLE * FROM usr02 INTO me->usuario WHERE bname = i_bname.
+    IF sy-subrc <> 0.
+      RAISE EVENT usuario_nao_encontrado  EXPORTING bname_nao_encontrado = i_bname.
+    ENDIF.
+  ENDMETHOD.                    "constructor
+
+  METHOD get_usuario.
+    r_usuario = me->usuario.
+  ENDMETHOD.                    "get_usuario
+
+  METHOD get_dias_ultimo_login.
+    r_dias = sy-datum - me->usuario-trdat.
+  ENDMETHOD.                    "get_criador
+
+ENDCLASS.                    "lcl_usuario IMPLEMENTATION
+
+
+************************************************************************
+*** Classe de eventos
+************************************************************************
+*----------------------------------------------------------------------*
+*       CLASS lcl_handle_event_usr DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS lcl_handle_event_usr DEFINITION.
+
+  PUBLIC SECTION.
+
+    CLASS-METHODS trata_evento FOR EVENT usuario_nao_encontrado OF lcl_usuario IMPORTING bname_nao_encontrado.
+
+ENDCLASS.                    "lcl_handle_event_usr DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_handle_event_usr IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS lcl_handle_event_usr IMPLEMENTATION.
+
+  METHOD trata_evento.
+    DATA l_msg TYPE string.
+    l_msg = `Usuário ` && bname_nao_encontrado && ` não encontrado.`.
+    MESSAGE l_msg TYPE 'E' DISPLAY LIKE 'I'.
+  ENDMETHOD.                    "trata_evento
+
+ENDCLASS.                    "lcl_handle_event_usr IMPLEMENTATION
+
+
+
+PARAMETERS p_usr TYPE xubname.
+
+START-OF-SELECTION.
+
+  DATA: lo_usuario           TYPE REF TO lcl_usuario,
+        lv_dias_ultimo_logon TYPE i,
+        ls_usuario           TYPE usr02.
+
+
+  SET HANDLER lcl_handle_event_usr=>trata_evento FOR ALL INSTANCES.
+
+  CREATE OBJECT lo_usuario
+    EXPORTING
+      i_bname = p_usr.

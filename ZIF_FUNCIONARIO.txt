@@ -1,0 +1,48 @@
+*"* components of interface ZIF_FUNCIONARIO
+interface ZIF_FUNCIONARIO
+  public .
+
+
+  data CPF type CHAR13 .
+  data NOME type STRING .
+  data SOBRENOME type STRING .
+  data DATA_NASC type DATS .
+  data CARGO type STRING .
+  data SALARIO type DEC10_2 .
+  constants:
+    BEGIN OF tipo_cargo,
+                operario TYPE char50 VALUE 'OPERARIO',
+                gerente  TYPE char50 VALUE 'GERENTE',
+              END OF tipo_cargo .
+
+  methods GET_NOME
+    returning
+      value(R_NOME) type STRING .
+  methods GET_SOBRENOME
+    returning
+      value(R_SOBRENOME) type STRING .
+  methods GET_DATA_NASC
+    returning
+      value(R_DATA_NASCIMENTO) type DATS .
+  methods GET_CARGO
+    returning
+      value(R_CARGO) type STRING .
+  methods GET_SALARIO
+    returning
+      value(R_SALARIO) type DEC10_2 .
+  methods SET_NOME
+    importing
+      !I_NOME type STRING .
+  methods SET_SOBRENOME
+    importing
+      !I_SOBRENOME type STRING .
+  methods SET_DATA_NASC
+    importing
+      !I_DATA_NASCIMENTO type DATS .
+  methods SET_CARGO
+    importing
+      !I_CARGO type STRING .
+  methods SET_SALARIO
+    importing
+      !I_SALARIO type DEC10_2 .
+endinterface.

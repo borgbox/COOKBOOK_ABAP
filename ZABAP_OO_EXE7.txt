@@ -1,0 +1,112 @@
+*&---------------------------------------------------------------------*
+*& Report  ZABAP_OO_EXE5
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT  zabap_oo_exe7.
+
+TABLES zfuncionario.
+
+DATA: cpf       TYPE char13,
+      nome      TYPE char50,
+      sobrenome TYPE char50,
+      cargo     TYPE char50,
+      salario   TYPE dec10_2.
+
+SELECT-OPTIONS: s_cpf FOR zfuncionario-cpf.
+
+PARAMETERS p_cpf TYPE char13.
+
+
+START-OF-SELECTION.
+
+  IF p_cpf IS NOT INITIAL.
+    s_cpf-low = p_cpf.
+    APPEND s_cpf.
+  ENDIF.
+
+*** Declara objeto
+  DATA: lo_zfuncionario    TYPE REF TO zcl_funcionario,
+        lt_zfuncionario    TYPE STANDARD TABLE OF REF TO zcl_funcionario,
+        lo_zcx_funcionario TYPE REF TO zcx_funcionario,
+        l_msg              TYPE string.
+
+*** Itera CPF e instancia um a um appendando
+  LOOP AT s_cpf.
+
+    TRY .
+        CREATE OBJECT lo_zfuncionario
+          EXPORTING
+            i_cpf = s_cpf-low.
+
+      CATCH zcx_funcionario INTO lo_zcx_funcionario.    " Exceções.
+        l_msg = lo_zcx_funcionario->get_text( ).
+        MESSAGE lo_zcx_funcionario TYPE 'E'.
+    ENDTRY.
+
+*** Appenda
+    APPEND lo_zfuncionario TO lt_zfuncionario.
+
+  ENDLOOP.
+
+  FREE lo_zfuncionario.
+
+*--------------------------------------------------------------------*
+*--------------------------------------------------------------------*
+*********************************************************
+*** 01 - Busca a pessoa selecionada percorrendo em loop
+*********************************************************
+  LOOP AT lt_zfuncionario INTO lo_zfuncionario.
+    IF lo_zfuncionario->cpf = s_cpf-low.
+      EXIT.
+    ENDIF.
+  ENDLOOP."LOOP AT lt_pessoa INTO lo_pessoa.
+
+*********************************************************
+*** 02 - Busca a pessoa selecionada com table_line
+*********************************************************
+  "Pré-requisito - Atributo público
+  READ TABLE lt_zfuncionario WITH KEY table_line->cpf = s_cpf-low INTO lo_zfuncionario.
+
+*********************************************************
+*** 03 - Busca a pessoa selecionada com estrutura
+*********************************************************
+  TYPES: BEGIN OF ty_func,
+           cpf       TYPE char13,
+           obj_func  TYPE REF TO zcl_funcionario,
+        END OF ty_func.
+
+  DATA: lt_estr_func   TYPE STANDARD TABLE OF ty_func,
+        ls_funcionario TYPE ty_func.
+
+  LOOP AT lt_zfuncionario INTO lo_zfuncionario.
+    ls_funcionario-cpf      = lo_zfuncionario->get_cpf( ).
+    ls_funcionario-obj_func = lo_zfuncionario.
+    APPEND ls_funcionario TO lt_estr_func.
+  ENDLOOP.
+
+  READ TABLE lt_estr_func WITH KEY cpf = s_cpf-low INTO ls_funcionario.
+
+  lo_zfuncionario = ls_funcionario-obj_func.
+
+LOOP AT lt_zfuncionario INTO lo_zfuncionario.
+
+ENDLOOP.
+
+*--------------------------------------------------------------------*
+*--------------------------------------------------------------------*
+
+  cpf       = lo_zfuncionario->get_cpf( ).
+  nome      = lo_zfuncionario->get_nome( ).
+  sobrenome = lo_zfuncionario->get_sobrenome( ).
+  cargo     = lo_zfuncionario->get_cargo( ).
+  salario   = lo_zfuncionario->get_salario( ).
+
+  WRITE:/ 'CPF: ',       cpf      .
+  WRITE:/ 'NOME: ',      nome     .
+  WRITE:/ 'SOBRENOME: ', sobrenome.
+  WRITE:/ 'CARGO: ',     cargo    .
+  WRITE:/ 'SALÁRIO: ',   salario  .

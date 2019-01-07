@@ -1,0 +1,216 @@
+*&---------------------------------------------------------------------*
+*& Report  ZEXE_OO_011
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT  zexe_oo_011.
+
+
+
+TYPES: BEGIN OF ty_saida,
+         cpf       TYPE zfuncionario-cpf,
+         nome      TYPE zfuncionario-nome,
+         sobrenome TYPE zfuncionario-sobrenome ,
+         cargo     TYPE zfuncionario-cargo ,
+         salario   TYPE zfuncionario-salario ,
+         t_cores   TYPE  lvc_t_scol  ,
+       END OF ty_saida.
+
+DATA: gt_saida       TYPE STANDARD TABLE OF ty_saida,
+      gt_zfunconario TYPE STANDARD TABLE OF zfuncionario,
+      go_alv         TYPE REF TO            cl_salv_table.
+
+*----------------------------------------------------------------------*
+*       CLASS LCL_MANIPULADOR_EVENTOS DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS lcl_manipulador_eventos DEFINITION.
+
+  PUBLIC SECTION.
+
+    METHODS: processa_clique       FOR EVENT link_click OF cl_salv_events_table IMPORTING column row,
+             processa_duplo_clique FOR EVENT double_click OF cl_salv_events_table IMPORTING column row.
+
+ENDCLASS.                    "LCL_MANIPULADOR_EVENTOS DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_manipulador_eventos IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS lcl_manipulador_eventos IMPLEMENTATION.
+
+  METHOD processa_clique.
+
+    FIELD-SYMBOLS <saida> TYPE ty_saida.
+    READ TABLE gt_saida INDEX row ASSIGNING <saida>.
+    IF sy-subrc = 0.
+      SUBMIT zabap_oo_exe7 AND RETURN WITH p_cpf = <saida>-cpf.
+    ENDIF.
+  ENDMETHOD.                    "PROCESSA_CLIQUE
+
+  METHOD processa_duplo_clique.
+  ENDMETHOD.                    "PROCESSA_DUPLO_CLIQUE
+
+ENDCLASS.                    "lcl_manipulador_eventos IMPLEMENTATION
+
+PARAMETERS: p_nome TYPE zfuncionario-nome.
+
+
+START-OF-SELECTION.
+
+  PERFORM carrega_dados.
+
+  PERFORM gera_itab_saida.
+
+  PERFORM processa_alv.
+
+END-OF-SELECTION.
+*&---------------------------------------------------------------------*
+*&      Form  CARREGA_DADOS
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM carrega_dados .
+
+  DATA: l_where TYPE string.
+
+  IF p_nome IS NOT INITIAL.
+    CONCATENATE 'NOME LIKE' '''' p_nome '%' '''' INTO l_where.
+
+    SELECT *
+      FROM zfuncionario
+         INTO TABLE gt_zfunconario
+             WHERE (l_where).
+
+  ELSE.
+    SELECT *
+        FROM zfuncionario
+            INTO TABLE gt_zfunconario.
+
+  ENDIF.
+
+sort gt_zfunconario by nome.
+
+ENDFORM.                    " CARREGA_DADOS
+*&---------------------------------------------------------------------*
+*&      Form  PROCESSA_ALV
+*&---------------------------------------------------------------------*
+FORM processa_alv .
+
+  DATA: lo_excecao              TYPE REF TO cx_root,
+        lo_column               TYPE REF TO cl_salv_column_table,
+        lo_manipulador_eventos  TYPE REF TO lcl_manipulador_eventos.
+
+  TRY .
+*** Cria instância do objeto ALV
+      cl_salv_table=>factory(
+        IMPORTING
+          r_salv_table   = go_alv
+        CHANGING
+          t_table        = gt_saida ).
+
+*** Cria o objeto que irá se encarregar de processar os evnetos lançados pela ALV
+      CREATE OBJECT lo_manipulador_eventos.
+
+      DATA lo_event TYPE REF TO cl_salv_events_table.
+      lo_event = go_alv->get_event( ).
+      SET HANDLER lo_manipulador_eventos->processa_clique FOR lo_event.
+
+*** CONFIGURA COLUNAS
+      lo_column ?= go_alv->get_columns( )->get_column( 'CPF' ).
+      lo_column->set_short_text( 'CPF' ).
+      lo_column->set_medium_text( 'CPF' ).
+      lo_column->set_long_text( 'CPF' ).
+
+      "Seta hotspot sensível ao evento click
+      lo_column->set_cell_type( if_salv_c_cell_type=>hotspot ).
+
+      lo_column ?= go_alv->get_columns( )->get_column( 'NOME' ).
+      lo_column->set_short_text( 'Nome' ).
+      lo_column->set_medium_text( 'Nome' ).
+      lo_column->set_long_text( 'Nome' ).
+      lo_column ?= go_alv->get_columns( )->get_column( 'SOBRENOME' ).
+      lo_column->set_short_text( 'Sobrenome' ).
+      lo_column->set_medium_text( 'Sobrenome' ).
+      lo_column->set_long_text( 'Sobrenome' ).
+      lo_column ?= go_alv->get_columns( )->get_column( 'CARGO' ).
+      lo_column->set_short_text( 'Cargo' ).
+      lo_column->set_medium_text( 'Cargo' ).
+      lo_column->set_long_text( 'Cargo' ).
+      lo_column ?= go_alv->get_columns( )->get_column( 'SALARIO' ).
+      lo_column->set_short_text( 'Salário' ).
+      lo_column->set_medium_text( 'Salário' ).
+      lo_column->set_long_text( 'Salário' ).
+
+*** Informa o nome da coluna que carrega os atributos de cores
+      go_alv->get_columns( )->set_color_column( 'T_CORES' ).
+
+*** CRIAR ORDENAÇÃO
+      go_alv->get_sorts( )->add_sort(
+          columnname = 'CARGO'
+          subtotal   = if_salv_c_bool_sap=>true  )."Indica que está coluna será a base para valores agregados
+
+      go_alv->get_sorts( )->add_sort(
+          columnname = 'NOME'
+          subtotal   = if_salv_c_bool_sap=>false  ).
+
+*** CRIAR AGREGAÇÕES
+      go_alv->get_aggregations( )->add_aggregation(
+          columnname  = 'SALARIO'
+          aggregation = if_salv_c_aggregation=>average ).
+
+*** Apresenta ALV
+      go_alv->display( ).
+
+    CATCH cx_salv_data_error INTO lo_excecao.
+      MESSAGE lo_excecao TYPE 'E'.
+    CATCH cx_salv_existing INTO lo_excecao.
+      MESSAGE lo_excecao TYPE 'E'.
+    CATCH cx_salv_not_found INTO lo_excecao.
+      MESSAGE lo_excecao TYPE 'E'.
+    CATCH cx_salv_msg INTO lo_excecao.
+      MESSAGE lo_excecao TYPE 'E'.
+  ENDTRY.
+
+
+
+
+ENDFORM.                    " PROCESSA_ALV
+*&---------------------------------------------------------------------*
+*&      Form  GERA_ITAB_SAIDA
+*&---------------------------------------------------------------------*
+FORM gera_itab_saida .
+
+  FIELD-SYMBOLS: <zfuncionario> TYPE zfuncionario,
+                 <saida>        TYPE ty_saida,
+                 <lvc_s_scol>   TYPE lvc_s_scol.
+
+  DATA l_cor TYPE lvc_s_colo.
+
+*** Gera saída e seta cor por célula
+  LOOP AT  gt_zfunconario ASSIGNING <zfuncionario>.
+
+    APPEND INITIAL LINE TO gt_saida ASSIGNING <saida>.
+    MOVE-CORRESPONDING <zfuncionario> TO <saida>.
+
+    " seta cor da célula dependente do salário
+    APPEND INITIAL LINE TO <saida>-t_cores ASSIGNING <lvc_s_scol>.
+    <lvc_s_scol>-fname = 'SALARIO'.
+    IF <zfuncionario>-salario < 1500.
+      l_cor-col = 6.
+    ELSE.
+      l_cor-col = 5.
+    ENDIF.
+    <lvc_s_scol>-color = l_cor.
+
+  ENDLOOP."LOOP AT  gt_zfunconario ASSIGNING <zfuncionario>.
+
+ENDFORM.                    " GERA_ITAB_SAIDA

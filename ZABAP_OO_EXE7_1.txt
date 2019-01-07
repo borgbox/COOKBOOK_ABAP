@@ -1,0 +1,130 @@
+
+
+REPORT  zabap_oo_exe7_1.
+
+*----------------------------------------------------------------------*
+*       CLASS LCL_PESSOA DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS lcl_pessoa DEFINITION.
+
+  PUBLIC SECTION.
+    DATA: nome       TYPE char50,
+          sobrenome  TYPE char50,
+          data_nasc  TYPE dats.
+
+    METHODS: get_nome_completo EXPORTING nome_completo TYPE string,
+             get_idade         EXPORTING idade TYPE i,
+             constructor       IMPORTING i_nome            TYPE char50
+                                         i_sobrenome       TYPE char50
+                                         i_data_nascimento TYPE sy-datum.
+
+ENDCLASS.                    "LCL_PESSOA DEFINITION
+
+
+*----------------------------------------------------------------------*
+*       CLASS lcl_pessoa IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS lcl_pessoa IMPLEMENTATION.
+
+  METHOD get_nome_completo.
+    CONCATENATE me->nome me->sobrenome INTO nome_completo SEPARATED BY space.
+  ENDMETHOD.                    "get_nome_completo
+
+  METHOD get_idade.
+    idade = ( sy-datum - me->data_nasc ) / 365.
+  ENDMETHOD.                    "get_idade
+
+  METHOD constructor.
+    me->nome = i_nome.
+    me->sobrenome = i_sobrenome.
+    me->data_nasc = i_data_nascimento.
+  ENDMETHOD.                    "constructor
+
+ENDCLASS.                    "lcl_pessoa IMPLEMENTATION
+
+PARAMETERS p_nome TYPE string.
+
+*** START-OF-SELECTION.
+START-OF-SELECTION.
+
+*** Declaração do Objeto
+  DATA: lo_pessoa TYPE REF TO lcl_pessoa,
+        lt_pessoa TYPE STANDARD TABLE OF REF TO lcl_pessoa.
+
+*** COM CONSTRUTOR
+  CREATE OBJECT lo_pessoa
+    EXPORTING
+      i_nome            = 'FRANCISCO'
+      i_sobrenome       = 'FREITAS'
+      i_data_nascimento = '19820327'.
+
+  APPEND lo_pessoa TO lt_pessoa.
+
+  CREATE OBJECT lo_pessoa
+    EXPORTING
+      i_nome            = 'MARLEY'
+      i_sobrenome       = 'FREITAS'
+      i_data_nascimento = '20101104'.
+
+  APPEND lo_pessoa TO lt_pessoa.
+
+  FREE lo_pessoa.
+
+*********************************************************
+*** 01 - Busca a pessoa selecionada percorrendo em loop
+*********************************************************
+  LOOP AT lt_pessoa INTO lo_pessoa.
+    IF lo_pessoa->nome = p_nome.
+      EXIT.
+    ENDIF.
+  ENDLOOP."LOOP AT lt_pessoa INTO lo_pessoa.
+
+*********************************************************
+*** 02 - Busca a pessoa selecionada com table_line
+*********************************************************
+  "Pré-requisito - Atributo público
+  READ TABLE lt_pessoa WITH KEY table_line->nome = p_nome INTO lo_pessoa.
+
+*********************************************************
+*** 03 - Busca a pessoa selecionada com estrutura
+*********************************************************
+  TYPES: BEGIN OF ty_pessoa,
+           nome       TYPE char50,
+           obj_pessoa TYPE REF TO lcl_pessoa,
+        END OF ty_pessoa.
+
+  DATA: lt_estr_pessoa TYPE STANDARD TABLE OF ty_pessoa,
+        ls_pessoa      TYPE ty_pessoa.
+
+  LOOP AT lt_pessoa INTO lo_pessoa.
+    ls_pessoa-nome       = lo_pessoa->nome.
+    ls_pessoa-obj_pessoa = lo_pessoa.
+    APPEND ls_pessoa TO lt_estr_pessoa.
+  ENDLOOP.
+
+  READ TABLE lt_estr_pessoa WITH KEY nome = p_nome INTO ls_pessoa.
+
+  lo_pessoa = ls_pessoa-obj_pessoa.
+
+*** Apresenta registro lido
+
+  CHECK lo_pessoa IS BOUND.
+
+  DATA: lv_nome_completo TYPE string,
+        lv_idade         TYPE i.
+
+  lo_pessoa->get_idade(
+    IMPORTING
+      idade = lv_idade ).
+
+  lo_pessoa->get_nome_completo(
+    IMPORTING
+      nome_completo =  lv_nome_completo ).
+
+
+  WRITE:/ 'Nome Completo: ', lv_nome_completo.
+  WRITE:/ 'Idade: ', lv_idade.
