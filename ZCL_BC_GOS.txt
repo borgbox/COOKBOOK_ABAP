@@ -17,20 +17,19 @@ public section.
   constants GC_TYPE_URL type SO_OBJ_TP value 'URL' ##NO_TEXT.
   constants GC_TYPE_NOTE type SO_OBJ_TP value 'RAW' ##NO_TEXT.
 
-  methods GOS_GET_FILE_LIST
+  class-methods GOS_GET_FILE_LIST
     importing
       !IS_LPORB type SIBFLPORB
     exporting
       !T_ATTACHMENTS type ZBC_TT_0002
-    returning
       value(RT_MESSAGES) type BAPIRETTAB .
-  methods GOS_DOWNLOAD_FILE_TO_GUI
+  class-methods GOS_DOWNLOAD_FILE_TO_GUI
     importing
       !FILE_PATH type CHAR100
       !ATTACHMENT type SOOD
-    returning
+    exporting
       value(RT_MESSAGES) type BAPIRETTAB .
-  methods GOS_GET_FILE_XSTRING
+  class-methods GOS_GET_FILE_XSTRING
     importing
       !FOLDER_REGION type SO_FOL_RG
       !DOCTP type SO_OBJ_TP
@@ -41,9 +40,8 @@ public section.
       !O_MIMETYPE type W3CONTTYPE
       !O_CONTENT type STRING
       !O_CONTENT_HEX type XSTRING
-    returning
       value(RT_MESSAGES) type BAPIRETTAB .
-  methods GOS_GET_FILE_SOLITAB
+  class-methods GOS_GET_FILE_SOLITAB
     importing
       !FOLDER_REGION type SO_FOL_RG
       !DOCTP type SO_OBJ_TP
@@ -55,18 +53,17 @@ public section.
       !O_MIMETYPE type W3CONTTYPE
       !O_CONTENT type STRING
       !O_FILELENGTH type I
-    returning
       value(RT_MESSAGES) type BAPIRETTAB .
-  methods GOS_ATTACH_FILE_XSTRING
+  class-methods GOS_ATTACH_FILE_XSTRING
     importing
       !IV_NAME type STRING
       !IV_CONTENT type STRING optional
       !IV_CONTENT_HEX type XSTRING optional
       !IS_LPORB type SIBFLPORB
       !IV_OBJTP type SO_OBJ_TP optional
-    returning
+    exporting
       value(RT_MESSAGES) type BAPIRETTAB .
-  methods GOS_ATTACH_FILE_SOLITAB
+  class-methods GOS_ATTACH_FILE_SOLITAB
     importing
       !IV_NAME type STRING
       !IV_CONTENT type STRING optional
@@ -76,7 +73,7 @@ public section.
       !IV_FILELENGTH type I
     returning
       value(RT_MESSAGES) type BAPIRETTAB .
-  methods GOS_EMAIL_ATTACHED_FILE
+  class-methods GOS_EMAIL_ATTACHED_FILE
     importing
       !FOLDER_REGION type SO_FOL_RG
       !DOCTP type SO_OBJ_TP
@@ -84,16 +81,16 @@ public section.
       !DOCNO type SO_OBJ_NO
       !T_RECEIVERS type ZBC_TT_0001
       !SEND_NOW type CHAR1 optional
-    returning
+    exporting
       value(RT_MESSAGES) type BAPIRETTAB .
-  methods GOS_DELETE_FILE
+  class-methods GOS_DELETE_FILE
     importing
       !FOLDER_REGION type SO_FOL_RG
       !DOCTP type SO_OBJ_TP
       !DOCYR type SO_OBJ_YR
       !DOCNO type SO_OBJ_NO
       !IS_LPORB type SIBFLPORB
-    returning
+    exporting
       value(RT_MESSAGES) type BAPIRETTAB .
 protected section.
 private section.
@@ -105,7 +102,7 @@ CLASS ZCL_BC_GOS IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Public Method ZCL_BC_GOS->GOS_ATTACH_FILE_SOLITAB
+* | Static Public Method ZCL_BC_GOS=>GOS_ATTACH_FILE_SOLITAB
 * +-------------------------------------------------------------------------------------------------+
 * | [--->] IV_NAME                        TYPE        STRING
 * | [--->] IV_CONTENT                     TYPE        STRING(optional)
@@ -337,14 +334,14 @@ CLASS ZCL_BC_GOS IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Public Method ZCL_BC_GOS->GOS_ATTACH_FILE_XSTRING
+* | Static Public Method ZCL_BC_GOS=>GOS_ATTACH_FILE_XSTRING
 * +-------------------------------------------------------------------------------------------------+
 * | [--->] IV_NAME                        TYPE        STRING
 * | [--->] IV_CONTENT                     TYPE        STRING(optional)
 * | [--->] IV_CONTENT_HEX                 TYPE        XSTRING(optional)
 * | [--->] IS_LPORB                       TYPE        SIBFLPORB
 * | [--->] IV_OBJTP                       TYPE        SO_OBJ_TP(optional)
-* | [<-()] RT_MESSAGES                    TYPE        BAPIRETTAB
+* | [<---] RT_MESSAGES                    TYPE        BAPIRETTAB
 * +--------------------------------------------------------------------------------------</SIGNATURE>
   METHOD gos_attach_file_xstring.
 
@@ -587,14 +584,14 @@ CLASS ZCL_BC_GOS IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Public Method ZCL_BC_GOS->GOS_DELETE_FILE
+* | Static Public Method ZCL_BC_GOS=>GOS_DELETE_FILE
 * +-------------------------------------------------------------------------------------------------+
 * | [--->] FOLDER_REGION                  TYPE        SO_FOL_RG
 * | [--->] DOCTP                          TYPE        SO_OBJ_TP
 * | [--->] DOCYR                          TYPE        SO_OBJ_YR
 * | [--->] DOCNO                          TYPE        SO_OBJ_NO
 * | [--->] IS_LPORB                       TYPE        SIBFLPORB
-* | [<-()] RT_MESSAGES                    TYPE        BAPIRETTAB
+* | [<---] RT_MESSAGES                    TYPE        BAPIRETTAB
 * +--------------------------------------------------------------------------------------</SIGNATURE>
   method GOS_DELETE_FILE.
 
@@ -712,11 +709,11 @@ CLASS ZCL_BC_GOS IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Public Method ZCL_BC_GOS->GOS_DOWNLOAD_FILE_TO_GUI
+* | Static Public Method ZCL_BC_GOS=>GOS_DOWNLOAD_FILE_TO_GUI
 * +-------------------------------------------------------------------------------------------------+
 * | [--->] FILE_PATH                      TYPE        CHAR100
 * | [--->] ATTACHMENT                     TYPE        SOOD
-* | [<-()] RT_MESSAGES                    TYPE        BAPIRETTAB
+* | [<---] RT_MESSAGES                    TYPE        BAPIRETTAB
 * +--------------------------------------------------------------------------------------</SIGNATURE>
   method GOS_DOWNLOAD_FILE_TO_GUI.
 
@@ -809,7 +806,7 @@ CLASS ZCL_BC_GOS IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Public Method ZCL_BC_GOS->GOS_EMAIL_ATTACHED_FILE
+* | Static Public Method ZCL_BC_GOS=>GOS_EMAIL_ATTACHED_FILE
 * +-------------------------------------------------------------------------------------------------+
 * | [--->] FOLDER_REGION                  TYPE        SO_FOL_RG
 * | [--->] DOCTP                          TYPE        SO_OBJ_TP
@@ -817,7 +814,7 @@ CLASS ZCL_BC_GOS IMPLEMENTATION.
 * | [--->] DOCNO                          TYPE        SO_OBJ_NO
 * | [--->] T_RECEIVERS                    TYPE        ZBC_TT_0001
 * | [--->] SEND_NOW                       TYPE        CHAR1(optional)
-* | [<-()] RT_MESSAGES                    TYPE        BAPIRETTAB
+* | [<---] RT_MESSAGES                    TYPE        BAPIRETTAB
 * +--------------------------------------------------------------------------------------</SIGNATURE>
   method GOS_EMAIL_ATTACHED_FILE.
 
@@ -1054,11 +1051,11 @@ CLASS ZCL_BC_GOS IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Public Method ZCL_BC_GOS->GOS_GET_FILE_LIST
+* | Static Public Method ZCL_BC_GOS=>GOS_GET_FILE_LIST
 * +-------------------------------------------------------------------------------------------------+
 * | [--->] IS_LPORB                       TYPE        SIBFLPORB
 * | [<---] T_ATTACHMENTS                  TYPE        ZBC_TT_0002
-* | [<-()] RT_MESSAGES                    TYPE        BAPIRETTAB
+* | [<---] RT_MESSAGES                    TYPE        BAPIRETTAB
 * +--------------------------------------------------------------------------------------</SIGNATURE>
   METHOD gos_get_file_list.
 
@@ -1231,8 +1228,7 @@ CLASS ZCL_BC_GOS IMPLEMENTATION.
           ENDIF.
         ENDLOOP.
       ELSE.
-        MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
-                WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4 INTO ls_message-message.
+
         ls_message-type = sy-msgty.
         ls_message-id = sy-msgid.
         ls_message-number = sy-msgno.
@@ -1244,8 +1240,7 @@ CLASS ZCL_BC_GOS IMPLEMENTATION.
         RETURN.
       ENDIF.
     ELSE.
-      MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
-              WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4 INTO ls_message-message.
+
       ls_message-type = sy-msgty.
       ls_message-id = sy-msgid.
       ls_message-number = sy-msgno.
@@ -1261,7 +1256,7 @@ CLASS ZCL_BC_GOS IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Public Method ZCL_BC_GOS->GOS_GET_FILE_SOLITAB
+* | Static Public Method ZCL_BC_GOS=>GOS_GET_FILE_SOLITAB
 * +-------------------------------------------------------------------------------------------------+
 * | [--->] FOLDER_REGION                  TYPE        SO_FOL_RG
 * | [--->] DOCTP                          TYPE        SO_OBJ_TP
@@ -1272,7 +1267,7 @@ CLASS ZCL_BC_GOS IMPLEMENTATION.
 * | [<---] O_MIMETYPE                     TYPE        W3CONTTYPE
 * | [<---] O_CONTENT                      TYPE        STRING
 * | [<---] O_FILELENGTH                   TYPE        I
-* | [<-()] RT_MESSAGES                    TYPE        BAPIRETTAB
+* | [<---] RT_MESSAGES                    TYPE        BAPIRETTAB
 * +--------------------------------------------------------------------------------------</SIGNATURE>
   method GOS_GET_FILE_SOLITAB.
 
@@ -1435,7 +1430,7 @@ CLASS ZCL_BC_GOS IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Public Method ZCL_BC_GOS->GOS_GET_FILE_XSTRING
+* | Static Public Method ZCL_BC_GOS=>GOS_GET_FILE_XSTRING
 * +-------------------------------------------------------------------------------------------------+
 * | [--->] FOLDER_REGION                  TYPE        SO_FOL_RG
 * | [--->] DOCTP                          TYPE        SO_OBJ_TP
@@ -1445,7 +1440,7 @@ CLASS ZCL_BC_GOS IMPLEMENTATION.
 * | [<---] O_MIMETYPE                     TYPE        W3CONTTYPE
 * | [<---] O_CONTENT                      TYPE        STRING
 * | [<---] O_CONTENT_HEX                  TYPE        XSTRING
-* | [<-()] RT_MESSAGES                    TYPE        BAPIRETTAB
+* | [<---] RT_MESSAGES                    TYPE        BAPIRETTAB
 * +--------------------------------------------------------------------------------------</SIGNATURE>
   method GOS_GET_FILE_XSTRING.
 

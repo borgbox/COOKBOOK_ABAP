@@ -1,0 +1,78 @@
+*&---------------------------------------------------------------------*
+*& Report ZFILE_UPLOAD_USING_CLASS
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT ZFILE_UPLOAD_USING_CLASS.
+
+*Specify Business Object Type and Key (BUS1065 = Employees))
+parameters: p_key type swo_typeid obligatory default '00000111',
+            p_type type swo_objtyp obligatory default 'BUS1065',
+            p_file type rlgrap-filename obligatory.
+
+at selection-screen on value-request for p_file.
+  call function 'F4_FILENAME'
+    exporting
+      program_name  = syst-cprog
+      dynpro_number = syst-dynnr
+      field_name    = 'P_FILE'
+    importing
+      file_name     = p_file.
+
+start-of-selection.
+
+  data: g_filename type string.
+  data: g_attsize type wsrm_error-wsrm_direction.
+  data: it_content like standard table of soli.
+  data: ta_srgbtbrel type standard table of srgbtbrel, wa_srgbtbrel type srgbtbrel.
+  data: lta_sood type standard table of sood, lwa_sood type sood.
+  data: dec_kb type p.
+  data: ls_lporb type sibflporb.
+  data: lv_objtyp type so_obj_tp.
+  data: lt_bapirettab type bapirettab.
+
+  lv_objtyp = 'EXT'.
+  ls_lporb-instid = p_key.
+  ls_lporb-typeid = p_type.
+
+  move  p_file to g_filename.
+
+  call function 'GUI_UPLOAD'
+    exporting
+      filename   = g_filename
+      filetype   = 'BIN'
+    importing
+      filelength = g_attsize
+    tables
+      data_tab   = it_content.
+
+  if sy-subrc eq 0.
+    call method zcl_bc_gos=>gos_attach_file_solitab
+      exporting
+        iv_name            = g_filename
+        iv_content_solitab = it_content
+        is_lporb           = ls_lporb
+        iv_objtp           = lv_objtyp
+        iv_filelength      = g_attsize
+      receiving
+        rt_messages        = lt_bapirettab.
+  endif.
+
+  call method zcl_bc_gos=>gos_get_file_list
+    exporting
+      is_lporb      = ls_lporb
+    importing
+      t_attachments = lta_sood
+      rt_messages   = lt_bapirettab.
+
+  if lt_bapirettab[] is initial.
+    write: /.
+    loop at lta_sood into lwa_sood.
+      dec_kb = lwa_sood-objlen / 1024.
+      if dec_kb < 1.
+        dec_kb = 1.
+      endif.
+
+      write: / lwa_sood-objdes, dec_kb, 'KB', ' ', lwa_sood-acnam.
+    endloop.
+  endif.
