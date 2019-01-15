@@ -23,7 +23,7 @@ start-of-selection.
 
   data: g_filename type string.
   data: g_attsize type wsrm_error-wsrm_direction.
-  data: it_content like standard table of soli.
+  data: it_content type solix_tab."like standard table of soli.
   data: ta_srgbtbrel type standard table of srgbtbrel, wa_srgbtbrel type srgbtbrel.
   data: lta_sood type standard table of sood, lwa_sood type sood.
   data: dec_kb type p.
@@ -36,6 +36,49 @@ start-of-selection.
   ls_lporb-typeid = p_type.
 
   move  p_file to g_filename.
+********************************************
+*  DATA: path_and_file LIKE rlgrap-filename,
+*        file_format LIKE rlgrap-filetype,
+*        bin_filesize LIKE soxwd-doc_length,
+*        object_type LIKE soodk-objtp VALUE 'EXT', " см.табл. TSOTD
+*        l_objcont LIKE soli OCCURS 0,
+*        l_filename LIKE rlgrap-filename,
+*        l_nodialog LIKE sonv-flag VALUE 'X',
+*        l_cancelled LIKE sonv-flag,
+*        put_to_kpro LIKE sonv-flag,
+*        lin TYPE i.
+*
+*  CALL FUNCTION 'SO_OBJECT_UPLOAD'
+*         EXPORTING
+*              path_and_file           = path_and_file
+*              no_dialog               = l_nodialog
+*         IMPORTING
+*              f_cancelled             = l_cancelled
+*              filelength              = bin_filesize
+*              act_filetype            = file_format
+*              act_filename            = path_and_file
+*              act_objtype             = object_type
+*              file_put_to_kpro        = put_to_kpro
+*         TABLES
+*              objcont                 = l_objcont
+*         EXCEPTIONS
+*              invalid_type            = 1
+*              object_type_not_allowed = 2
+*              kpro_insert_error       = 3
+*              OTHERS                  = 4.
+**************************************
+
+    data:
+    dpath(4096),
+    filename(4096),
+    lines_bin     type  i,
+    lines_txt     type  i,
+    access_info   like  scms_acinf   occurs 1 with header line,
+    content_txt   like  sdokcntasc   occurs 1,
+    content_bin   like  sdokcntbin   occurs 1,
+    buffer_txt    like  sdokcntasc   occurs 1,
+    buffer_bin    like  sdokcntbin   occurs 1.
+
 
   call function 'GUI_UPLOAD'
     exporting

@@ -67,7 +67,7 @@ public section.
     importing
       !IV_NAME type STRING
       !IV_CONTENT type STRING optional
-      !IV_CONTENT_SOLITAB type SOLI_TAB optional
+      !IV_CONTENT_SOLITAB type SOLIX_TAB optional
       !IS_LPORB type SIBFLPORB
       !IV_OBJTP type SO_OBJ_TP optional
       !IV_FILELENGTH type I
@@ -106,7 +106,7 @@ CLASS ZCL_BC_GOS IMPLEMENTATION.
 * +-------------------------------------------------------------------------------------------------+
 * | [--->] IV_NAME                        TYPE        STRING
 * | [--->] IV_CONTENT                     TYPE        STRING(optional)
-* | [--->] IV_CONTENT_SOLITAB             TYPE        SOLI_TAB(optional)
+* | [--->] IV_CONTENT_SOLITAB             TYPE        SOLIX_TAB(optional)
 * | [--->] IS_LPORB                       TYPE        SIBFLPORB
 * | [--->] IV_OBJTP                       TYPE        SO_OBJ_TP(optional)
 * | [--->] IV_FILELENGTH                  TYPE        I
@@ -190,7 +190,13 @@ CLASS ZCL_BC_GOS IMPLEMENTATION.
     ls_header = '&SO_FORMAT=BIN'.
     append ls_header to lt_obj_header.
 
-    lt_data[] = iv_content_solitab[].
+  CALL FUNCTION 'SO_SOLIXTAB_TO_SOLITAB'
+    EXPORTING
+      ip_solixtab = iv_content_solitab
+    IMPORTING
+      ep_solitab  = lt_data.
+
+*    lt_data[] = iv_content_solitab[].
   else.
     size = strlen( iv_content ).
     objname = iv_name.
