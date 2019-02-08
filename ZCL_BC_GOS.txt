@@ -1,1633 +1,3187 @@
-*https://blogs.sap.com/2013/05/23/the-gos-generic-object-services-class-that-does-all-the-work/
-class ZCL_BC_GOS definition
-  public
-  final
-  create public .
+* allgemeine Formroutinen
+FORM auftragsmenge_ermitteln USING    ow_mcvbup-fksaa  TYPE fksaa
+                                      ow_mcvbup-fksta  TYPE fksta
+                                      ow_mcvbap-fkrel  TYPE fkrel
+                                      ow_mcvbap-lsmeng TYPE lsmeng
+                                      ow_mcvbap-kwmeng TYPE kwmeng
+                                      ow_mcvbap-zmeng  TYPE dzmeng
+                                      ow_mcvbapf-remng TYPE remenge
+                                      ow_mcvbapf-wemng TYPE wemenge
+                             CHANGING ow_mcvbap-olimeau TYPE mc_olimeau.
+  IF     ow_mcvbap-fkrel CA con_fkrel_kwmeng.
+    ow_mcvbap-olimeau = ow_mcvbap-kwmeng.
+  ELSEIF ow_mcvbap-fkrel CA con_fkrel_lsmeng.
+    ow_mcvbap-olimeau = ow_mcvbap-lsmeng.
+  ELSEIF ow_mcvbap-fkrel CA con_fkrel_zmeng.
+    ow_mcvbap-olimeau = ow_mcvbap-zmeng.
+  ENDIF.
+*   falls nicht eindeutig zuzuordnen und/oder Zielfeld initial
+  IF ow_mcvbap-olimeau IS INITIAL.
+    ow_mcvbap-olimeau = ow_mcvbap-kwmeng.
+  ENDIF.
+  IF ow_mcvbap-olimeau IS INITIAL.
+    ow_mcvbap-olimeau = ow_mcvbap-lsmeng.
+  ENDIF.
+  IF ow_mcvbap-olimeau IS INITIAL.
+    ow_mcvbap-olimeau = ow_mcvbap-zmeng.
+  ENDIF.
+  IF     ow_mcvbap-fkrel CA 'F' AND    "gemäß RE-Menge bei Strecke
+         ow_mcvbapf-remng GT 0.
+*  es wird solange mit der Auftragsmenge gearbeitet, bis die RE-Menge
+*  größer 0 ist
+    ow_mcvbap-olimeau = ow_mcvbapf-remng.
+  ENDIF.
 
-public section.
+ENDFORM.                    "AUFTRAGSMENGE_ERMITTELN
 
-  constants C_YES type CHAR1 value 'Y' ##NO_TEXT.
-  constants C_NO type CHAR1 value 'NO' ##NO_TEXT.
-  constants C_INFINITY type DATS value '99991231' ##NO_TEXT.
-  constants C_INITIAL_DATE type DATUM value '00000000' ##NO_TEXT.
-  constants C_TRUE type XFELD value 'X' ##NO_TEXT.
-  constants C_FALSE type XFELD value ' ' ##NO_TEXT.
-  constants GC_TYPE_FILE type SO_OBJ_TP value 'EXT' ##NO_TEXT.
-  constants GC_TYPE_ARL type SO_OBJ_TP value 'ARC' ##NO_TEXT.
-  constants GC_TYPE_URL type SO_OBJ_TP value 'URL' ##NO_TEXT.
-  constants GC_TYPE_NOTE type SO_OBJ_TP value 'RAW' ##NO_TEXT.
-
-  class-methods GOS_GET_FILE_LIST
-    importing
-      !IS_LPORB type SIBFLPORB
-    exporting
-      !T_ATTACHMENTS type ZBC_TT_0002
-      value(RT_MESSAGES) type BAPIRETTAB .
-  class-methods GOS_DOWNLOAD_FILE_TO_GUI
-    importing
-      !FILE_PATH type CHAR100
-      !ATTACHMENT type SOOD
-    exporting
-      value(RT_MESSAGES) type BAPIRETTAB .
-  class-methods GOS_GET_FILE_XSTRING
-    importing
-      !FOLDER_REGION type SO_FOL_RG
-      !DOCTP type SO_OBJ_TP
-      !DOCYR type SO_OBJ_YR
-      !DOCNO type SO_OBJ_NO
-    exporting
-      !O_FILE_NAME type STRING
-      !O_MIMETYPE type W3CONTTYPE
-      !O_CONTENT type STRING
-      !O_CONTENT_HEX type XSTRING
-      value(RT_MESSAGES) type BAPIRETTAB .
-  class-methods GOS_GET_FILE_SOLITAB
-    importing
-      !FOLDER_REGION type SO_FOL_RG
-      !DOCTP type SO_OBJ_TP
-      !DOCYR type SO_OBJ_YR
-      !DOCNO type SO_OBJ_NO
-    exporting
-      !O_CONTENT_SOLITAB type SOLI_TAB
-      !O_FILE_NAME type STRING
-      !O_MIMETYPE type W3CONTTYPE
-      !O_CONTENT type STRING
-      !O_FILELENGTH type I
-      value(RT_MESSAGES) type BAPIRETTAB .
-  class-methods GOS_ATTACH_FILE_XSTRING
-    importing
-      !IV_NAME type STRING
-      !IV_CONTENT type STRING optional
-      !IV_CONTENT_HEX type XSTRING optional
-      !IS_LPORB type SIBFLPORB
-      !IV_OBJTP type SO_OBJ_TP optional
-    exporting
-      value(RT_MESSAGES) type BAPIRETTAB .
-  class-methods GOS_ATTACH_FILE_SOLITAB
-    importing
-      !IV_NAME type STRING
-      !IV_CONTENT type STRING optional
-      !IV_CONTENT_SOLITAB type SOLIX_TAB optional
-      !IS_LPORB type SIBFLPORB
-      !IV_OBJTP type SO_OBJ_TP optional
-      !IV_FILELENGTH type I
-    returning
-      value(RT_MESSAGES) type BAPIRETTAB .
-  class-methods GOS_EMAIL_ATTACHED_FILE
-    importing
-      !FOLDER_REGION type SO_FOL_RG
-      !DOCTP type SO_OBJ_TP
-      !DOCYR type SO_OBJ_YR
-      !DOCNO type SO_OBJ_NO
-      !T_RECEIVERS type ZBC_TT_0001
-      !SEND_NOW type CHAR1 optional
-    exporting
-      value(RT_MESSAGES) type BAPIRETTAB .
-  class-methods GOS_DELETE_FILE
-    importing
-      !FOLDER_REGION type SO_FOL_RG
-      !DOCTP type SO_OBJ_TP
-      !DOCYR type SO_OBJ_YR
-      !DOCNO type SO_OBJ_NO
-      !IS_LPORB type SIBFLPORB
-    exporting
-      value(RT_MESSAGES) type BAPIRETTAB .
-protected section.
-private section.
-ENDCLASS.
-
-
-
-CLASS ZCL_BC_GOS IMPLEMENTATION.
-
-
-* <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Static Public Method ZCL_BC_GOS=>GOS_ATTACH_FILE_SOLITAB
-* +-------------------------------------------------------------------------------------------------+
-* | [--->] IV_NAME                        TYPE        STRING
-* | [--->] IV_CONTENT                     TYPE        STRING(optional)
-* | [--->] IV_CONTENT_SOLITAB             TYPE        SOLIX_TAB(optional)
-* | [--->] IS_LPORB                       TYPE        SIBFLPORB
-* | [--->] IV_OBJTP                       TYPE        SO_OBJ_TP(optional)
-* | [--->] IV_FILELENGTH                  TYPE        I
-* | [<-()] RT_MESSAGES                    TYPE        BAPIRETTAB
-* +--------------------------------------------------------------------------------------</SIGNATURE>
-  method GOS_ATTACH_FILE_SOLITAB.
-
-      data: ls_message type bapiret2,
-        filename type string,
-        filefullname type string,
-        mime_type type string,
-        size type i,
-        offset type i,
-        offset_old type i,
-        temp_len type i,
-        objname type string,
-        l_obj_type type so_obj_tp,
-        hex_null type x length 1 value '20',
-        l_document_title type so_text255,
-        file_ext type string,
-        lt_objcont type standard table of solisti1 initial size 6,
-        objcont like line of lt_objcont,
-        lt_ls_doc_change type standard table of sodocchgi1,
-        ls_doc_change like line of lt_ls_doc_change,
-        lt_data type soli_tab,
-        ls_data type soli,
-        lt_xdata type solix_tab,
-        ls_xdata type solix,
-        l_folder_id type sofdk,
-        ls_object_id type soodk,
-        l_object_id_fol type so_obj_id,
-        l_object_id type so_obj_id,
-        l_object_hd_change type sood1,
-        l_tab_size type int4,
-        l_retype type breltyp-reltype,
-        lt_urltab type standard table of sood-objdes.
-
-  call function 'SO_FOLDER_ROOT_ID_GET'
-    exporting
-      region    = 'B'
-    importing
-      folder_id = l_folder_id.
-
-  if iv_objtp = gc_type_file.
-    size = iv_filelength.
-
-    call method cl_fbicrc_gos_services=>split_path
-      exporting
-        iv_path     = iv_name
-      importing
-        ev_filename = filename.
-
-    call method cl_fbicrc_gos_services=>split_file_extension
-      exporting
-        iv_filename_with_ext = filename
-      importing
-        ev_filename          = objname
-        ev_extension         = file_ext.
-
-    ls_doc_change-obj_name = objname.
-    ls_doc_change-obj_descr = objname.
-    ls_doc_change-obj_langu = sy-langu.
-    ls_doc_change-sensitivty = 'F'.
-    ls_doc_change-doc_size = size.
-
-    l_retype = 'ATTA'.
-    l_obj_type = 'EXT'.
-
-    l_object_hd_change-objnam = ls_doc_change-obj_name.
-    l_object_hd_change-objdes = ls_doc_change-obj_descr.
-    l_object_hd_change-objsns = ls_doc_change-sensitivty.
-    l_object_hd_change-objla  = ls_doc_change-obj_langu.
-    l_object_hd_change-objlen = ls_doc_change-doc_size.
-    l_object_hd_change-file_ext = file_ext.
-
-    data lt_obj_header type standard table of solisti1.
-    data ls_header type solisti1.
-    concatenate '&SO_FILENAME=' filename into ls_header.
-    append ls_header to lt_obj_header.
-    clear ls_header.
-    ls_header = '&SO_FORMAT=BIN'.
-    append ls_header to lt_obj_header.
-
-  CALL FUNCTION 'SO_SOLIXTAB_TO_SOLITAB'
-    EXPORTING
-      ip_solixtab = iv_content_solitab
-    IMPORTING
-      ep_solitab  = lt_data.
-
-*    lt_data[] = iv_content_solitab[].
-  else.
-    size = strlen( iv_content ).
-    objname = iv_name.
-
-    ls_doc_change-obj_descr = objname.
-    ls_doc_change-sensitivty = 'O'.
-    ls_doc_change-obj_langu  = sy-langu.
-
-    offset = 0.
-
-    if iv_objtp = gc_type_note.
-      l_retype = 'NOTE'.
-      l_obj_type = 'RAW'.
-      l_object_hd_change-file_ext = 'TXT'.
-
-      while offset <= size.
-        offset_old = offset.
-        offset = offset + 255.
-        if offset > size.
-          temp_len = strlen( iv_content+offset_old ).
-          clear ls_data-line.
-          ls_data-line = iv_content+offset_old(temp_len).
-        else.
-          ls_data-line = iv_content+offset_old(255).
-        endif.
-        append ls_data to lt_data.
-      endwhile.
-
-      if objname is initial.
-        read table lt_data index 1 into l_document_title.
-        while l_document_title+49 <> ' '.
-          shift l_document_title right.
-        endwhile.
-        shift l_document_title left deleting leading ' '.
-        ls_doc_change-obj_descr = l_document_title.
-      endif.
-    else.
-*     it's url (not note)
-      l_retype = 'URL'.
-      l_obj_type = 'URL'.
-
-      if objname is initial.
-        split iv_content at '/' into table lt_urltab.
-        describe table lt_urltab lines l_tab_size.
-        read table lt_urltab index l_tab_size into ls_doc_change-obj_descr.
-      endif.
-
-      while offset <= size.
-        offset_old = offset.
-        offset = offset + 250.
-        if offset > size.
-          temp_len = strlen( iv_content+offset_old ).
-          clear ls_data-line.
-          ls_data-line = iv_content+offset_old(temp_len).
-        else.
-          ls_data-line = iv_content+offset_old(250).
-        endif.
-        concatenate '&KEY&' ls_data-line into ls_data-line.
-        append ls_data to lt_data.
-      endwhile.
-    endif.
-
-    ls_doc_change-doc_size = size.
-
-    l_object_hd_change-objdes = ls_doc_change-obj_descr.
-    l_object_hd_change-objsns = ls_doc_change-sensitivty.
-    l_object_hd_change-objla  = ls_doc_change-obj_langu.
-    l_object_hd_change-objlen = ls_doc_change-doc_size.
-  endif.
-
-* save object
-  call function 'SO_OBJECT_INSERT'
-    exporting
-      folder_id                  = l_folder_id
-      object_hd_change           = l_object_hd_change
-      object_type                = l_obj_type
-    importing
-      object_id                  = ls_object_id
-    tables
-      objcont                    = lt_data
-      objhead                    = lt_obj_header
-    exceptions
-      component_not_available    = 01
-      folder_not_exist           = 06
-      folder_no_authorization    = 05
-      object_type_not_exist      = 17
-      operation_no_authorization = 21
-      parameter_error            = 23
-      others                     = 1000.
-  if sy-subrc <> 0.
-    message id sy-msgid type sy-msgty number sy-msgno
-            with sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4 into ls_message-message.
-    ls_message-type = sy-msgty.
-    ls_message-id = sy-msgid.
-    ls_message-number = sy-msgno.
-    ls_message-message_v1 = sy-msgv1.
-    ls_message-message_v2 = sy-msgv2.
-    ls_message-message_v3 = sy-msgv3.
-    ls_message-message_v4 = sy-msgv4.
-    append ls_message to rt_messages.
-    return.
-  endif.
-
-* create relation
-  data l_obj_rolea type borident.
-  data l_obj_roleb type borident.
-  l_obj_rolea-objkey = is_lporb-instid.
-  l_obj_rolea-objtype = is_lporb-typeid.
-  l_obj_rolea-logsys = is_lporb-catid.
-
-  l_object_id_fol  = l_folder_id.
-  l_object_id = ls_object_id.
-  concatenate l_object_id_fol l_object_id into l_obj_roleb-objkey respecting blanks.
-  l_obj_roleb-objtype = 'MESSAGE'.
-  clear l_obj_roleb-logsys.
-
-  call function 'BINARY_RELATION_CREATE'
-    exporting
-      obj_rolea    = l_obj_rolea
-      obj_roleb    = l_obj_roleb
-      relationtype = l_retype
-    exceptions
-      others       = 1.
-  if sy-subrc = 0.
-    commit work and wait.
-  else.
-    message id sy-msgid type sy-msgty number sy-msgno
-            with sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4 into ls_message-message.
-    ls_message-type = sy-msgty.
-    ls_message-id = sy-msgid.
-    ls_message-number = sy-msgno.
-    ls_message-message_v1 = sy-msgv1.
-    ls_message-message_v2 = sy-msgv2.
-    ls_message-message_v3 = sy-msgv3.
-    ls_message-message_v4 = sy-msgv4.
-    append ls_message to rt_messages.
-    return.
-  endif.
-
-  endmethod.
-
-
-* <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Static Public Method ZCL_BC_GOS=>GOS_ATTACH_FILE_XSTRING
-* +-------------------------------------------------------------------------------------------------+
-* | [--->] IV_NAME                        TYPE        STRING
-* | [--->] IV_CONTENT                     TYPE        STRING(optional)
-* | [--->] IV_CONTENT_HEX                 TYPE        XSTRING(optional)
-* | [--->] IS_LPORB                       TYPE        SIBFLPORB
-* | [--->] IV_OBJTP                       TYPE        SO_OBJ_TP(optional)
-* | [<---] RT_MESSAGES                    TYPE        BAPIRETTAB
-* +--------------------------------------------------------------------------------------</SIGNATURE>
-  METHOD gos_attach_file_xstring.
-
-    DATA: ls_message         TYPE bapiret2,
-          filename           TYPE string,
-          filefullname       TYPE string,
-          mime_type          TYPE string,
-          size               TYPE i,
-          offset             TYPE i,
-          offset_old         TYPE i,
-          temp_len           TYPE i,
-          objname            TYPE string,
-          l_obj_type         TYPE so_obj_tp,
-          hex_null           TYPE x LENGTH 1 VALUE '20',
-          l_document_title   TYPE so_text255,
-          file_ext           TYPE string,
-          lt_objcont         TYPE STANDARD TABLE OF solisti1 INITIAL SIZE 6,
-          objcont            LIKE LINE OF lt_objcont,
-          lt_ls_doc_change   TYPE STANDARD TABLE OF sodocchgi1,
-          ls_doc_change      LIKE LINE OF lt_ls_doc_change,
-          lt_data            TYPE soli_tab,
-          ls_data            TYPE soli,
-          lt_xdata           TYPE solix_tab,
-          ls_xdata           TYPE solix,
-          l_folder_id        TYPE sofdk,
-          ls_object_id       TYPE soodk,
-          l_object_id_fol    TYPE so_obj_id,
-          l_object_id        TYPE so_obj_id,
-          l_object_hd_change TYPE sood1,
-          l_tab_size         TYPE int4,
-          l_retype           TYPE breltyp-reltype,
-          lt_urltab          TYPE STANDARD TABLE OF sood-objdes.
-
-    CALL FUNCTION 'SO_FOLDER_ROOT_ID_GET'
-      EXPORTING
-        region    = 'B'
-      IMPORTING
-        folder_id = l_folder_id.
-
-    IF iv_objtp = gc_type_file.
-      size = xstrlen( iv_content_hex ).
-
-      CALL METHOD cl_fbicrc_gos_services=>split_path
-        EXPORTING
-          iv_path     = iv_name
-        IMPORTING
-          ev_filename = filename.
-
-      CALL METHOD cl_fbicrc_gos_services=>split_file_extension
-        EXPORTING
-          iv_filename_with_ext = filename
-        IMPORTING
-          ev_filename          = objname
-          ev_extension         = file_ext.
-
-      ls_doc_change-obj_name = objname.
-      ls_doc_change-obj_descr = objname.
-      ls_doc_change-obj_langu = sy-langu.
-      ls_doc_change-sensitivty = 'F'.
-      ls_doc_change-doc_size = size.
-
-      offset = 0.
-      WHILE offset <= size.
-        offset_old = offset.
-        offset = offset + 255.
-        IF offset > size.
-          temp_len = xstrlen( iv_content_hex+offset_old ).
-          CLEAR ls_xdata-line WITH hex_null IN BYTE MODE.
-          ls_xdata-line = iv_content_hex+offset_old(temp_len).
-        ELSE.
-          ls_xdata-line = iv_content_hex+offset_old(255).
-        ENDIF.
-        APPEND ls_xdata TO lt_xdata.
-      ENDWHILE.
-
-      l_retype = 'ATTA'.
-      l_obj_type = 'EXT'.
-
-      l_object_hd_change-objnam = ls_doc_change-obj_name.
-      l_object_hd_change-objdes = ls_doc_change-obj_descr.
-      l_object_hd_change-objsns = ls_doc_change-sensitivty.
-      l_object_hd_change-objla  = ls_doc_change-obj_langu.
-      l_object_hd_change-objlen = ls_doc_change-doc_size.
-      l_object_hd_change-file_ext = file_ext.
-
-      DATA lt_obj_header TYPE STANDARD TABLE OF solisti1.
-      DATA ls_header TYPE solisti1.
-      CONCATENATE '&SO_FILENAME=' filename INTO ls_header.
-      APPEND ls_header TO lt_obj_header.
-      CLEAR ls_header.
-      ls_header = '&SO_FORMAT=BIN'.
-      APPEND ls_header TO lt_obj_header.
-
-*   change hex data to text data
-      CALL FUNCTION 'SO_SOLIXTAB_TO_SOLITAB'
-        EXPORTING
-          ip_solixtab = lt_xdata
-        IMPORTING
-          ep_solitab  = lt_data.
+*---------------------------------------------------------------------*
+*       FORM AUFTRAGSMENGE_ERMITTELN_KM                               *
+*---------------------------------------------------------------------*
+*       ........                                                      *
+*---------------------------------------------------------------------*
+*  -->  OW_MCVBAP-LFREL                                               *
+*  -->  OW_MCVBAP-FKREL                                               *
+*  -->  OW_MCVBAP-LSMENG                                              *
+*  -->  OW_MCVBAP-KWMENG                                              *
+*  -->  OW_MCVBAP-KBMENG                                              *
+*  -->  OW_MCVBAP-ZMENG                                               *
+*  -->  OW_MCVBAP-OLIMEAU                                             *
+*---------------------------------------------------------------------*
+FORM auftragsmenge_ermitteln_km USING ow_mcvbap_lfrel  TYPE lfrel_ap
+                                      ow_mcvbap_fkrel  TYPE fkrel
+                                      ow_mcvbap_lsmeng TYPE lsmeng
+                                      ow_mcvbap_kwmeng TYPE kwmeng
+                                      ow_mcvbap_kbmeng TYPE kbmeng
+                                      ow_mcvbap_zmeng  TYPE dzmeng
+                             CHANGING ow_mcvbap_olimeau TYPE mc_olimeau.
+* diese Routine wird genutzt um die offene Menge nach der Freigabe zu
+* ermitteln (also KBMENG)
+  IF     ow_mcvbap_fkrel CA con_fkrel_kwmeng.
+    ow_mcvbap_olimeau = ow_mcvbap_kwmeng.
+  ELSEIF ow_mcvbap_fkrel CA con_fkrel_lsmeng.
+    IF ow_mcvbap_lfrel NE true.
+*     dann sind doch die Einteilungen lieferrelvant
+      ow_mcvbap_olimeau = ow_mcvbap_kbmeng.
     ELSE.
-      size = strlen( iv_content ).
-      objname = iv_name.
+      ow_mcvbap_olimeau = ow_mcvbap_lsmeng.
+    ENDIF.
+  ELSEIF ow_mcvbap_fkrel CA con_fkrel_zmeng.
+    ow_mcvbap_olimeau = ow_mcvbap_zmeng.
+  ELSE.
+    ow_mcvbap_olimeau = ow_mcvbap_lsmeng.
+  ENDIF.
+  IF ow_mcvbap_fkrel  CA 'F' AND       "gemäß RE-Menge bei Strecke
+    ow_mcvbap_olimeau IS INITIAL.
+    ow_mcvbap_olimeau = ow_mcvbap_kwmeng.
+  ENDIF.
+* Fakt.plan mit Zielmenge (z.B. Lastschr.anfo., Kontrakt)
+  IF ow_mcvbap_olimeau IS INITIAL AND
+     ow_mcvbap_fkrel EQ 'I'.
+    ow_mcvbap_olimeau = ow_mcvbap_zmeng.
+  ENDIF.
+ENDFORM.                    "AUFTRAGSMENGE_ERMITTELN_KM
 
-      ls_doc_change-obj_descr = objname.
-      ls_doc_change-sensitivty = 'O'.
-      ls_doc_change-obj_langu  = sy-langu.
+*---------------------------------------------------------------------*
+*       FORM CHECK_APPLICATION_DATA                                   *
+*---------------------------------------------------------------------*
+*       ........                                                      *
+*---------------------------------------------------------------------*
+*  -->  XVBAP                                                         *
+*  -->  YVBAP                                                         *
+*  -->  XVBAK                                                         *
+*  -->  YVBAK                                                         *
+*  -->  MODUS                                                         *
+*  -->  TRTYP                                                         *
+*---------------------------------------------------------------------*
+FORM check_application_data TABLES xvbap STRUCTURE vbapvb
+                                   yvbap STRUCTURE vbapvb
+                            USING  xvbak STRUCTURE vbak
+                                   yvbak STRUCTURE vbak
+                                   modus TYPE mcmodus
+                                   trtyp TYPE trtyp.
+  CHECK trtyp EQ 'V' AND
+        modus NE con_modus_new.
+  IF xvbak-vbeln NE yvbak-vbeln.
+    MESSAGE a322 WITH 'VBAK'.
+*   MESSAGE A322 WITH 'Program error in LMCS1U03 VBAK <-> SIS'.
+  ENDIF.
+*
+  LOOP AT xvbap.
+    CHECK xvbap-updkz EQ con_changed OR
+          xvbap-updkz EQ con_deleted.
+    LOOP AT yvbap WHERE mandt EQ xvbap-mandt
+                  AND   vbeln EQ xvbap-vbeln
+                  AND   posnr EQ xvbap-posnr.
+    ENDLOOP.
+    IF sy-subrc NE 0.
+      MESSAGE a322 WITH 'VBAP'.
+*     MESSAGE A322 WITH 'Program error in LMCS1U03 VBAP <-> SIS'.
+    ENDIF.
+  ENDLOOP.
+ENDFORM.                    "CHECK_APPLICATION_DATA
 
-      offset = 0.
-
-      IF iv_objtp = gc_type_note.
-        l_retype = 'NOTE'.
-        l_obj_type = 'RAW'.
-        l_object_hd_change-file_ext = 'TXT'.
-
-        WHILE offset <= size.
-          offset_old = offset.
-          offset = offset + 255.
-          IF offset > size.
-            temp_len = strlen( iv_content+offset_old ).
-            CLEAR ls_data-line.
-            ls_data-line = iv_content+offset_old(temp_len).
-          ELSE.
-            ls_data-line = iv_content+offset_old(255).
-          ENDIF.
-          APPEND ls_data TO lt_data.
-        ENDWHILE.
-
-        IF objname IS INITIAL.
-          READ TABLE lt_data INDEX 1 INTO l_document_title.
-          WHILE l_document_title+49 <> ' '.
-            SHIFT l_document_title RIGHT.
-          ENDWHILE.
-          SHIFT l_document_title LEFT DELETING LEADING ' '.
-          ls_doc_change-obj_descr = l_document_title.
-        ENDIF.
-      ELSE.
-*     it's url (not note)
-        l_retype = 'URL'.
-        l_obj_type = 'URL'.
-
-        IF objname IS INITIAL.
-          SPLIT iv_content AT '/' INTO TABLE lt_urltab.
-          DESCRIBE TABLE lt_urltab LINES l_tab_size.
-          READ TABLE lt_urltab INDEX l_tab_size INTO ls_doc_change-obj_descr.
-        ENDIF.
-
-        WHILE offset <= size.
-          offset_old = offset.
-          offset = offset + 250.
-          IF offset > size.
-            temp_len = strlen( iv_content+offset_old ).
-            CLEAR ls_data-line.
-            ls_data-line = iv_content+offset_old(temp_len).
-          ELSE.
-            ls_data-line = iv_content+offset_old(250).
-          ENDIF.
-          CONCATENATE '&KEY&' ls_data-line INTO ls_data-line.
-          APPEND ls_data TO lt_data.
-        ENDWHILE.
+*---------------------------------------------------------------------*
+*       FORM FPLT_CALL                                                *
+*---------------------------------------------------------------------*
+*       ........                                                      *
+*---------------------------------------------------------------------*
+*  -->  FC_SUHIE                                                      *
+*---------------------------------------------------------------------*
+FORM fplt_call USING fc_suhie TYPE c.
+* Termine des Fakturierungsplans
+  MOVE fc_suhie TO flg_suhie.
+  flg_tmc2f_fplt = true.
+  READ TABLE xmcfplt WITH KEY supkz = xmcvbak-supkz
+                              mandt = xmcvbak-mandt
+                              fplnr = xmcvbkd-fplnr BINARY SEARCH.
+  IF sy-subrc EQ 0.
+    LOOP AT xmcfplt FROM sy-tabix.
+      Clear flag_bp_fakwr.
+      IF xmcfplt-supkz NE xmcvbak-supkz
+      OR xmcfplt-mandt NE xmcvbak-mandt
+      OR xmcfplt-fplnr NE xmcvbkd-fplnr.
+        EXIT.
       ENDIF.
+      IF control-logging EQ true.
+        MOVE xmcfplt-fkdat  TO mclogging-fkdat.
+      ENDIF.
+      PERFORM xmcfplt_werte USING xmcfplt xmcvbap xmcvbak-vbtyp.
+      PERFORM update_call
+        USING flg_suhie zeitp xmcvbap-stafo flg_tmc2f_fplt.
+*     Termine des Fakturierungsplans zu den Konditionen
+      CLEAR flg_tmc2f_komv.
+*     Anreichern Konditionen bei periodischer Preisfindung
+      PERFORM billing_plan_pricing_for_sis
+        TABLES xmckomv
+        USING  xmcfplt
+               xmcvbak-knumv
+               xmcvbap-posnr.
+* in case a dateline in a periodic billing plan has a
+* billing value = 0 subsequent date lines in the billing plan
+* no longer contribute to the order intake in CO and CO-PA
+* Flag have to be set in userexit billing_plan_pricing_for_sis
+      IF flag_bp_fakwr = 'X'.
+        continue.
+      ENDIF.
+      PERFORM komv_call USING con_suhie_komvfplt.
+      MOVE fc_suhie TO flg_suhie.
+      IF flg_tmc2f_fplt EQ false AND
+         flg_tmc2f_komv EQ false.
+        EXIT.
+      ENDIF.
+    ENDLOOP.
+  ENDIF.
+  CLEAR: mclogging-fkdat.
+ENDFORM.                    "FPLT_CALL
 
-      ls_doc_change-doc_size = size.
+*---------------------------------------------------------------------*
+*       FORM KOMV_CALL                                                *
+*---------------------------------------------------------------------*
+*       ........                                                      *
+*---------------------------------------------------------------------*
+*  -->  KC_SUHIE                                                      *
+*---------------------------------------------------------------------*
+FORM komv_call USING kc_suhie TYPE c.
+  MOVE kc_suhie TO flg_suhie.
+  flg_tmc2f_komv = true.
+  MOVE xmcvbap-supkz TO xmckomv_key-supkz.
+  MOVE xmcvbak-mandt TO xmckomv_key-mandt.
+  MOVE xmcvbak-knumv TO xmckomv_key-knumv.
+  MOVE xmcvbap-posnr TO xmckomv_key-kposn.
+  READ TABLE xmckomv WITH KEY supkz = xmckomv_key-supkz
+                              mandt = xmckomv_key-mandt
+                              knumv = xmckomv_key-knumv
+                              kposn = xmckomv_key-kposn
+                                          BINARY SEARCH.
+  IF sy-subrc EQ 0.
+    LOOP AT xmckomv FROM sy-tabix.
+      IF xmckomv-supkz NE xmckomv_key-supkz
+      OR xmckomv-mandt NE xmckomv_key-mandt
+      OR xmckomv-knumv NE xmckomv_key-knumv
+      OR xmckomv-kposn NE xmckomv_key-kposn.
+        EXIT.
+      ENDIF.
+      IF control-logging EQ true.
+        MOVE xmckomv-kschl  TO mclogging-kschl.
+      ENDIF.
+      PERFORM xmckomv_werte_auftrag USING xmckomv xmcvbap xmcvbak-vbtyp.
+* Konditions- und Staffelbasis bei Intervallstaffeln ermitteln
+      PERFORM kond_staffel_basis_korr USING xmckomv-knprs xmckomv-krech
+                                         xmckomv-kzbzg xmckomv-kfaktor1
+                               CHANGING  xmckomv-kawrt xmckomv-kstbs.
+      PERFORM update_call
+        USING flg_suhie zeitp xmcvbap-stafo flg_tmc2f_komv.
+*     Termine des Fakturierungsplans zu den Konditionen
+*     CLEAR FLG_TMC2F_FPLT.
+*     IF FLG_SUHIE EQ CON_SUHIE_KOMV.
+*       PERFORM FPLT_CALL USING CON_SUHIE_KOMVFPLT.
+*       MOVE KC_SUHIE TO FLG_SUHIE.
+*     ENDIF.
+*     wenn keine Konditionsfortschreibung und keine FPLT-Fortschreibung
+*     IF   FLG_TMC2F_KOMV EQ FALSE   AND
+*          FLG_TMC2F_FPLT EQ FALSE.
+      IF   flg_tmc2f_komv EQ false.
+        EXIT.
+      ENDIF.
+    ENDLOOP.
+  ENDIF.
+  CLEAR:
+    mclogging-kschl.
+ENDFORM.                    "KOMV_CALL
 
-      l_object_hd_change-objdes = ls_doc_change-obj_descr.
-      l_object_hd_change-objsns = ls_doc_change-sensitivty.
-      l_object_hd_change-objla  = ls_doc_change-obj_langu.
-      l_object_hd_change-objlen = ls_doc_change-doc_size.
-    ENDIF.
+*---------------------------------------------------------------------*
+*       FORM KOMV_READ                                                *
+*---------------------------------------------------------------------*
+*       ........                                                      *
+*---------------------------------------------------------------------*
+*  -->  KR_KOMV                                                       *
+*  -->  KR_KNUMV                                                      *
+*---------------------------------------------------------------------*
+FORM komv_read TABLES kr_komv STRUCTURE komv
+               USING kr_knumv TYPE knumv.
 
-* save object
-    CALL FUNCTION 'SO_OBJECT_INSERT'
-      EXPORTING
-        folder_id                  = l_folder_id
-        object_hd_change           = l_object_hd_change
-        object_type                = l_obj_type
-      IMPORTING
-        object_id                  = ls_object_id
-      TABLES
-        objcont                    = lt_data
-        objhead                    = lt_obj_header
-      EXCEPTIONS
-        component_not_available    = 01
-        folder_not_exist           = 06
-        folder_no_authorization    = 05
-        object_type_not_exist      = 17
-        operation_no_authorization = 21
-        parameter_error            = 23
-        OTHERS                     = 1000.
-    IF sy-subrc <> 0.
-      MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
-              WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4 INTO ls_message-message.
-      ls_message-type = sy-msgty.
-      ls_message-id = sy-msgid.
-      ls_message-number = sy-msgno.
-      ls_message-message_v1 = sy-msgv1.
-      ls_message-message_v2 = sy-msgv2.
-      ls_message-message_v3 = sy-msgv3.
-      ls_message-message_v4 = sy-msgv4.
-      APPEND ls_message TO rt_messages.
-      RETURN.
-    ENDIF.
+    DATA hkonv TYPE STANDARD TABLE OF konv.
 
-* create relation
-    DATA l_obj_rolea TYPE borident.
-    DATA l_obj_roleb TYPE borident.
-    l_obj_rolea-objkey = is_lporb-instid.
-    l_obj_rolea-objtype = is_lporb-typeid.
-    l_obj_rolea-logsys = is_lporb-catid.
+    TRY.
+       cl_prc_result_factory=>get_instance( )->get_prc_result( )->get_price_element_db_by_key(
+          EXPORTING
+             iv_knumv                      = kr_knumv
+          IMPORTING
+             et_prc_element_classic_format = hkonv ).
 
-    l_object_id_fol  = l_folder_id.
-    l_object_id = ls_object_id.
-    CONCATENATE l_object_id_fol l_object_id INTO l_obj_roleb-objkey RESPECTING BLANKS.
-    l_obj_roleb-objtype = 'MESSAGE'.
-    CLEAR l_obj_roleb-logsys.
+       kr_komv[] = hkonv[].
 
-    CALL FUNCTION 'BINARY_RELATION_CREATE'
-      EXPORTING
-        obj_rolea    = l_obj_rolea
-        obj_roleb    = l_obj_roleb
-        relationtype = l_retype
-      EXCEPTIONS
-        OTHERS       = 1.
-    IF sy-subrc = 0.
-      COMMIT WORK AND WAIT.
+       CATCH cx_prc_result INTO DATA(lr_exc).
+*        If something goes wrong here -> Abort!! Otherwise we risk corrupted data
+*        This should never happens. If yes, then there is something wrong that needs coding corrections.
+         MESSAGE X522(vh).
+    ENDTRY.
+
+ENHANCEMENT-POINT KOMV_READ_01 SPOTS ES_SAPLMCS1.
+*$*$-Start: KOMV_READ_01------------------------------------------------------------------------$*$*
+ENHANCEMENT 1  OIA_SAPLMCS1.    "active version
+                                                         "SO7K017957 JP
+* if fees exist for the document, select them as well
+  read table kr_komv with key kntyp = '-'
+                     transporting no fields.
+  if sy-subrc eq 0.
+*KH(del) select * from oianf appending table kr_komv
+    select * from oianf appending
+             corresponding fields of table kr_komv      "SO7K115812 KH
+*   Reason for the change: Depending on the system history, KONV    KH
+*   has different field order (SORTTABS) -> syntax error            KH
+                        where knumv = kr_knumv.
+    sort kr_komv by mandt knumv kposn stunr zaehk.
+  endif.
+ENDENHANCEMENT.
+*$*$-End:   KOMV_READ_01------------------------------------------------------------------------$*$*
+ENDFORM.                    "KOMV_READ
+
+*---------------------------------------------------------------------*
+*       FORM KOMV_READ_ALT                                            *
+*---------------------------------------------------------------------*
+*       ........                                                      *
+*---------------------------------------------------------------------*
+*  -->  KRA_KOMV                                                      *
+*  -->  KRA_XMCKOMV                                                   *
+*  -->  KRA_KNUMV                                                     *
+*  -->  KRA_SUPKZ                                                     *
+*---------------------------------------------------------------------*
+FORM komv_read_alt TABLES   kra_komv    STRUCTURE komv
+                            kra_xmckomv STRUCTURE mckomvb
+                   USING    kra_knumv   TYPE knumv
+                   CHANGING kra_supkz   TYPE supkz.
+  DATA: kra_tabix LIKE sy-tabix.
+  READ TABLE kra_komv INDEX 1.
+  IF sy-subrc EQ 0 AND
+     kra_knumv = kra_komv-knumv.
+    MOVE 1 TO kra_tabix.
+  ENDIF.
+  DESCRIBE TABLE kra_xmckomv LINES sy-tabix.
+  READ TABLE kra_xmckomv INDEX sy-tabix.
+* lesen letzer, da im Stornofall mehrere KNUMVs existieren, der
+* aktuelle aber immer der letzte ist
+  IF sy-subrc  EQ 0 AND
+     kra_knumv =  kra_xmckomv-knumv.
+    IF kra_xmckomv-supkz EQ con_supkz_unv.
+      MOVE con_supkz_unv TO kra_supkz.
     ELSE.
-      MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
-              WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4 INTO ls_message-message.
-      ls_message-type = sy-msgty.
-      ls_message-id = sy-msgid.
-      ls_message-number = sy-msgno.
-      ls_message-message_v1 = sy-msgv1.
-      ls_message-message_v2 = sy-msgv2.
-      ls_message-message_v3 = sy-msgv3.
-      ls_message-message_v4 = sy-msgv4.
-      APPEND ls_message TO rt_messages.
-      RETURN.
+      MOVE con_supkz_alt TO kra_supkz.
+      IF kra_tabix EQ 0.
+        PERFORM komv_read TABLES kra_komv USING kra_knumv.
+      ENDIF.
     ENDIF.
+  ELSE.
+    MOVE con_supkz_alt TO kra_supkz.
+    IF kra_tabix EQ 0.
+      PERFORM komv_read TABLES kra_komv USING kra_knumv.
+    ENDIF.
+  ENDIF.
+ENDFORM.                    "KOMV_READ_ALT
 
-  ENDMETHOD.
+*---------------------------------------------------------------------*
+*       FORM KOMV_READ_NEU                                            *
+*---------------------------------------------------------------------*
+*       ........                                                      *
+*---------------------------------------------------------------------*
+*  -->  KRN_KOMV                                                      *
+*  -->  KRN_KNUMV                                                     *
+*  -->  KRN_SUPKZ                                                     *
+*---------------------------------------------------------------------*
+FORM komv_read_neu TABLES   krn_komv  STRUCTURE komv
+                   USING    krn_knumv TYPE knumv
+                   CHANGING krn_supkz TYPE supkz.
+  DESCRIBE TABLE krn_komv LINES sy-tabix.
+  IF sy-tabix EQ 0.
+    MOVE con_supkz_unv TO krn_supkz.
+    PERFORM komv_read TABLES krn_komv USING krn_knumv.
+  ELSE.
+    MOVE con_supkz_neu TO krn_supkz.
+  ENDIF.
+ENDFORM.                    "KOMV_READ_NEU
 
+*---------------------------------------------------------------------*
+*       FORM MC_TABLES_PREPARE                                        *
+*---------------------------------------------------------------------*
+*       1. Erzeugt alte Eintraege bei Aenderungstransaktionen, wenn   *
+*          Tabellen nicht geaendert wurden                            *
+*       2. Uebernimmt Partner in den Kopf und in die Position         *
+*---------------------------------------------------------------------*
+FORM mc_tables_prepare.
+  READ TABLE xmcvbak INDEX 1.
+  IF sy-subrc EQ 0 AND
+     xmcvbak-abdis EQ space.
+*   Zulieferer: Folgende FORM ist schon im Dialog gelaufen, da in
+*               der Verbuchung die YVBLB nicht mehr vorhanden ist
+    PERFORM mc_tables_prepare1 TABLES
+        xmckomv
+        xmcvbak
+        xmcvbap
+        xmcvbep
+        xmcvbkd
+        xmcvbpa
+        xmcvbuk
+        xmcvbup
+        xmcvbapf
+        xmcvbfa
+        xmcfplt.
+  ENDIF.
+ENDFORM.                    "MC_TABLES_PREPARE
 
-* <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Static Public Method ZCL_BC_GOS=>GOS_DELETE_FILE
-* +-------------------------------------------------------------------------------------------------+
-* | [--->] FOLDER_REGION                  TYPE        SO_FOL_RG
-* | [--->] DOCTP                          TYPE        SO_OBJ_TP
-* | [--->] DOCYR                          TYPE        SO_OBJ_YR
-* | [--->] DOCNO                          TYPE        SO_OBJ_NO
-* | [--->] IS_LPORB                       TYPE        SIBFLPORB
-* | [<---] RT_MESSAGES                    TYPE        BAPIRETTAB
-* +--------------------------------------------------------------------------------------</SIGNATURE>
-  method GOS_DELETE_FILE.
+*---------------------------------------------------------------------*
+*       FORM MC_TABLES_PREPARE1                                       *
+*---------------------------------------------------------------------*
+*       ........                                                      *
+*---------------------------------------------------------------------*
+*  -->  XMCKOMV                                                       *
+*  -->  XMCVBAK                                                       *
+*  -->  XMCVBAP                                                       *
+*  -->  XMCVBEP                                                       *
+*  -->  XMCVBKD                                                       *
+*  -->  XMCVBPA                                                       *
+*  -->  XMCVBUK                                                       *
+*  -->  XMCVBUP                                                       *
+*  -->  XMCVBAPF                                                      *
+*  -->  XMCVBFA                                                       *
+*  -->  XMCFPLT                                                       *
+*---------------------------------------------------------------------*
+FORM mc_tables_prepare1 TABLES
+        xmckomv       STRUCTURE mckonvb
+        xmcvbak       STRUCTURE mcvbakb
+        xmcvbap       STRUCTURE mcvbapb
+        xmcvbep       STRUCTURE mcvbepb
+        xmcvbkd       STRUCTURE mcvbkdb
+        xmcvbpa       STRUCTURE mcvbpab
+        xmcvbuk       STRUCTURE mcvbukb
+        xmcvbup       STRUCTURE mcvbupb
+        xmcvbapf      STRUCTURE mcvbafb
+        xmcvbfa       STRUCTURE mcvbfab
+        xmcfplt       STRUCTURE mcfpltb.
+  TABLES: mcpartner, *mcpartner.
+  DATA: BEGIN OF mtp_vbap OCCURS 10.
+          INCLUDE STRUCTURE vbapvb.
+  DATA: END   OF mtp_vbap.
+  DATA: BEGIN OF mtp_vblb OCCURS 10.
+          INCLUDE STRUCTURE vblbvb.
+  DATA: END   OF mtp_vblb.
+  DATA: BEGIN OF mtp_vbep OCCURS 10.
+          INCLUDE STRUCTURE vbepvb.
+  DATA: END   OF mtp_vbep.
+  DATA: BEGIN OF mtp_vbfa OCCURS 0.
+          INCLUDE STRUCTURE vbfavb.
+  DATA: END   OF mtp_vbfa.
+  DATA: BEGIN OF mtp_vbup OCCURS 10.
+          INCLUDE STRUCTURE vbupvb.
+  DATA: END   OF mtp_vbup.
+  DATA: BEGIN OF mtp_komkhie.
+          INCLUDE STRUCTURE komkhie.
+  DATA: END   OF mtp_komkhie.
+  DATA: mtp_tabix LIKE sy-tabix.
+  DATA: mtp_open_wmeng LIKE mcvbepb-wmeng.
+  DATA: BEGIN OF mtp_wldat_vbep OCCURS 10,
+          supkz LIKE mcvbepb-supkz,
+          vbeln LIKE mcvbepb-vbeln,
+          posnr LIKE mcvbepb-posnr,
+          abart LIKE mcvbepb-abart,
+          edatu LIKE mcvbepb-edatu,
+          cmeng LIKE mcvbepb-cmeng,
+          tabix LIKE sy-tabix,
+        END OF mtp_wldat_vbep.
+  DATA: da_alt.
+  DATA: imaxhier TYPE histunr.
+  DATA: savtabix LIKE sy-tabix.
+* Auftragsmengen für Lieferpläne Zulieferer
+  DATA: posnr_kwmeng LIKE xmcvbap-kwmeng.
+* Geschäftsjahresvariante für Zulieferer/MAIS
+  STATICS: da_kna1_kunnr LIKE kna1-kunnr,
+           da_kna1_periv LIKE kna1-periv.
 
- data: ex type ref to cx_root,
-        text type string,
-        l_folder_id type soodk,
-        l_object_id type soodk,
-        document_id type sofmk,
-        lo_root type ref to cx_root,
-        ls_fol_id type soodk,
-        lwa_document_data type sofolenti1,
-        document_content type standard table of soli,
-        lwa_object_header type standard table of solisti1,
-        l_document_id type swo_typeid,
-        l_document_data type sofolenti1,
-        lt_header type soli_tab,
-        lv_message type bapiret2,
-        lo_docsrv type ref to cl_gos_document_service.
+* Erzeugen alte Eintraege, wenn nichts veraendert wurde
+* VBAK, VBUK, VBAP, VBUP, VBKD incl. sort
+  PERFORM old_entries_prepare TABLES xmcvbak xmcvbuk xmcvbap xmcvbup
+                                     xmcvbkd.
+* VBEP
+  LOOP AT xmcvbep WHERE supkz EQ con_supkz_unv.
+    MOVE con_supkz_neu TO xmcvbep-supkz.
+    MODIFY xmcvbep INDEX sy-tabix.
+    MOVE con_supkz_alt TO xmcvbep-supkz.
+    APPEND xmcvbep.
+  ENDLOOP.
+* VBfa
+  LOOP AT xmcvbfa WHERE supkz EQ con_supkz_unv.
+    MOVE con_supkz_neu TO xmcvbfa-supkz.
+    MODIFY xmcvbfa INDEX sy-tabix.
+    MOVE con_supkz_alt TO xmcvbfa-supkz.
+    APPEND xmcvbfa.
+  ENDLOOP.
+* VBAPF
+  LOOP AT xmcvbapf WHERE supkz EQ con_supkz_unv.
+    MOVE con_supkz_neu TO xmcvbapf-supkz.
+    MODIFY xmcvbapf INDEX sy-tabix.
+    MOVE con_supkz_alt TO xmcvbapf-supkz.
+    APPEND xmcvbapf.
+  ENDLOOP.
+* VBPA
+  LOOP AT xmcvbpa WHERE supkz EQ con_supkz_unv.
+    MOVE con_supkz_neu TO xmcvbpa-supkz.
+    MODIFY xmcvbpa INDEX sy-tabix.
+    MOVE con_supkz_alt TO xmcvbpa-supkz.
+    APPEND xmcvbpa.
+  ENDLOOP.
+* KOMV
+  LOOP AT xmckomv WHERE supkz EQ con_supkz_unv.
+    MOVE con_supkz_neu TO xmckomv-supkz.
+    MODIFY xmckomv INDEX sy-tabix.
+    MOVE con_supkz_alt TO xmckomv-supkz.
+    APPEND xmckomv.
+  ENDLOOP.
+* FPLT
+  LOOP AT xmcfplt WHERE supkz EQ con_supkz_unv.
+    MOVE con_supkz_neu TO xmcfplt-supkz.
+    MODIFY xmcfplt INDEX sy-tabix.
+    MOVE con_supkz_alt TO xmcfplt-supkz.
+    APPEND xmcfplt.
+  ENDLOOP.
 
-  try.
-      call function 'SO_FOLDER_ROOT_ID_GET'
-        exporting
-          region    = folder_region
-        importing
-          folder_id = ls_fol_id
-        exceptions
-          others    = 1.
+* Sortieren XMC-Tabellen.
+* Note 968384: XMCVBPA must be sorted by PARVW as well, because in
+* form routine 'vbpap_call' it is read with binary search.
+  SORT xmcvbpa by supkz mandt vbeln posnr parvw.              "<_968384
+  SORT xmcvbep BY supkz mandt vbeln posnr etenr.
+  SORT xmcvbfa BY supkz mandt vbelv posnv vbeln posnn vbtyp_n.
+  SORT xmcvbapf BY supkz      vbeln posnr.
+  SORT xmckomv BY supkz mandt knumv kposn stunr.
+  SORT xmcfplt BY supkz mandt fplnr fkdat fpltr.
 
-      if sy-subrc eq 0.
-        l_folder_id-objtp = ls_fol_id-objtp.
-        l_folder_id-objyr = ls_fol_id-objyr.
-        l_folder_id-objno = ls_fol_id-objno.
+* es können doppelte Einträge enstehen !
+  DELETE ADJACENT DUPLICATES FROM xmcfplt.
+  DELETE ADJACENT DUPLICATES FROM xmcvbep.
 
-        l_object_id-objtp = doctp.
-        l_object_id-objyr = docyr.
-        l_object_id-objno = docno.
-
-        call function 'SO_OBJECT_READ'
-          exporting
-            folder_id                  = l_folder_id
-            object_id                  = l_object_id
-          tables
-            objcont                    = document_content
-          exceptions
-            active_user_not_exist      = 1
-            communication_failure      = 2
-            component_not_available    = 3
-            folder_not_exist           = 4
-            folder_no_authorization    = 5
-            object_not_exist           = 6
-            object_no_authorization    = 7
-            operation_no_authorization = 8
-            owner_not_exist            = 9
-            parameter_error            = 10
-            substitute_not_active      = 11
-            substitute_not_defined     = 12
-            system_failure             = 13
-            x_error                    = 14
-            others                     = 15.
-
-        if sy-subrc eq 0.
-          document_id-foltp = l_folder_id-objtp.
-          document_id-folyr = l_folder_id-objyr.
-          document_id-folno = l_folder_id-objno.
-          document_id-doctp = l_object_id-objtp.
-          document_id-docyr = l_object_id-objyr.
-          document_id-docno = l_object_id-objno.
-
-          l_document_id = document_id.
-
-          create object lo_docsrv.
-          case doctp.
-            when gc_type_file.
-              call method lo_docsrv->delete_attachment
-                exporting
-                  is_lporb      = is_lporb
-                  ip_attachment = l_document_id.
-            when gc_type_note.
-              call method lo_docsrv->delete_note
-                exporting
-                  is_lporb = is_lporb
-                  ip_note  = l_document_id.
-            when gc_type_url.
-              call method lo_docsrv->delete_url
-                exporting
-                  is_lporb = is_lporb
-                  ip_url   = l_document_id.
-          endcase.
-
-          if sy-subrc = 0.
-            commit work and wait.
-          else.
-            lv_message-id = sy-msgid.
-            lv_message-number = sy-msgno.
-            lv_message-message_v1 = sy-msgv1.
-            lv_message-message_v2 = sy-msgv2.
-            lv_message-message_v3 = sy-msgv3.
-            lv_message-message_v4 = sy-msgv4.
-            append lv_message to rt_messages.
-            return.
-          endif.
-        endif.
-      endif.
-    catch cx_root into ex.
-      lv_message-id = sy-msgid.
-      lv_message-number = sy-msgno.
-      lv_message-message_v1 = sy-msgv1.
-      lv_message-message_v2 = sy-msgv2.
-      lv_message-message_v3 = sy-msgv3.
-      lv_message-message_v4 = sy-msgv4.
-      append lv_message to rt_messages.
-  endtry.
-
-  endmethod.
-
-
-* <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Static Public Method ZCL_BC_GOS=>GOS_DOWNLOAD_FILE_TO_GUI
-* +-------------------------------------------------------------------------------------------------+
-* | [--->] FILE_PATH                      TYPE        CHAR100
-* | [--->] ATTACHMENT                     TYPE        SOOD
-* | [<---] RT_MESSAGES                    TYPE        BAPIRETTAB
-* +--------------------------------------------------------------------------------------</SIGNATURE>
-  method GOS_DOWNLOAD_FILE_TO_GUI.
-
-  data: ex type ref to cx_root,
-        text type string,
-        ltp_sortfield type char30,
-        lta_objcont type soli_tab,
-        ltp_pathfile(1000) type c,
-        ltp_filename type string,
-        ltp_binfilesize type so_doc_len,
-        ls_message type bapiret2.
-
-  try .
-      concatenate attachment-objtp attachment-objyr attachment-objno into ltp_sortfield.
-      import objcont_tab to lta_objcont from database soc3(dt) id ltp_sortfield.
-
-      if sy-subrc = 0.
-        if not attachment-acnam is initial.
-          concatenate file_path '\' attachment-objdes '.' attachment-acnam into ltp_pathfile.
-        else.
-          concatenate file_path '\' attachment-objdes '.' attachment-file_ext into ltp_pathfile.
-        endif.
-
-        replace '\\' with '\' into ltp_pathfile+2.
-        translate ltp_pathfile using '/  '.
-
-        ltp_binfilesize = attachment-objlen.
-
-        call function 'SO_OBJECT_DOWNLOAD'
-          exporting
-            bin_filesize     = ltp_binfilesize
-            filetype         = 'BIN'
-            path_and_file    = ltp_pathfile
-            extct            = attachment-extct
-            no_dialog        = 'X'
-          importing
-            act_filename     = ltp_filename
-          tables
-            objcont          = lta_objcont
-          exceptions
-            file_write_error = 1
-            invalid_type     = 2
-            x_error          = 3
-            kpro_error       = 4
-            others           = 5.
-
-        if sy-subrc <> 0.
-          message id sy-msgid type sy-msgty number sy-msgno
-                  with sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4 into ls_message-message.
-          ls_message-type = sy-msgty.
-          ls_message-id = sy-msgid.
-          ls_message-number = sy-msgno.
-          ls_message-message_v1 = sy-msgv1.
-          ls_message-message_v2 = sy-msgv2.
-          ls_message-message_v3 = sy-msgv3.
-          ls_message-message_v4 = sy-msgv4.
-          append ls_message to rt_messages.
-          return.
-        endif.
-      else.
-        message id sy-msgid type sy-msgty number sy-msgno
-                with sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4 into ls_message-message.
-        ls_message-type = sy-msgty.
-        ls_message-id = sy-msgid.
-        ls_message-number = sy-msgno.
-        ls_message-message_v1 = sy-msgv1.
-        ls_message-message_v2 = sy-msgv2.
-        ls_message-message_v3 = sy-msgv3.
-        ls_message-message_v4 = sy-msgv4.
-        append ls_message to rt_messages.
-        return.
-      endif.
-    catch cx_root into ex.
-      text = ex->get_text( ).
-
-      message id sy-msgid type sy-msgty number sy-msgno
-              with sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4 into ls_message-message.
-      ls_message-type = sy-msgty.
-      ls_message-id = sy-msgid.
-      ls_message-number = sy-msgno.
-      ls_message-message_v1 = sy-msgv1.
-      ls_message-message_v2 = sy-msgv2.
-      ls_message-message_v3 = sy-msgv3.
-      ls_message-message_v4 = sy-msgv4.
-      append ls_message to rt_messages.
-      return.
-  endtry.
-
-  endmethod.
-
-
-* <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Static Public Method ZCL_BC_GOS=>GOS_EMAIL_ATTACHED_FILE
-* +-------------------------------------------------------------------------------------------------+
-* | [--->] FOLDER_REGION                  TYPE        SO_FOL_RG
-* | [--->] DOCTP                          TYPE        SO_OBJ_TP
-* | [--->] DOCYR                          TYPE        SO_OBJ_YR
-* | [--->] DOCNO                          TYPE        SO_OBJ_NO
-* | [--->] T_RECEIVERS                    TYPE        ZBC_TT_0001
-* | [--->] SEND_NOW                       TYPE        CHAR1(optional)
-* | [<---] RT_MESSAGES                    TYPE        BAPIRETTAB
-* +--------------------------------------------------------------------------------------</SIGNATURE>
-  method GOS_EMAIL_ATTACHED_FILE.
-
-*    ZBC_TT_0001 é um tipo tabela PARA SOMLRECI1
-     data: ex type ref to cx_root,
-        text type string,
-        l_folder_id type soodk,
-        l_object_id type soodk,
-        document_id type sofmk,
-        lo_root type ref to cx_root,
-        ls_fol_id type soodk,
-        l_document_id type so_entryid,
-        lwa_document_data type sofolenti1,
-        document_content type standard table of soli,
-        lwa_object_header type standard table of solisti1,
-        lwa_object_content type standard table of solisti1,
-        lwa_object_content_1 type standard table of solisti1,
-        lwa_contents_hex type standard table of solix,
-        lt_plist type standard table of sopcklsti1,
-        wa_lt_plist type sopcklsti1,
-        wa_lwa_object_content_1 type solisti1,
-        mailto type ad_smtpadr,
-        document_content_solix type solix_tab,
-        wa_object_header like line of lwa_object_header,
-        send_request  type ref to cl_bcs,
-        sent_to_all type os_boolean,
-        document type ref to cl_document_bcs,
-        doc_size type so_obj_len,
-        recipient type ref to if_recipient_bcs,
-        bcs_exception type ref to cx_bcs,
-        ttext type bcsy_text,
-        wa_t_receivers like line of t_receivers,
-        moff type i,
-        lt_url_tab type table of so_url,
-        ld_url_tab_size type sytabix,
-        fil_nm(50) type c,
-        file_ext(3) type c,
-        fil_nm_txt type so_obj_des,
-        ls_message type bapiret2.
-
-  try .
-      call function 'SO_FOLDER_ROOT_ID_GET'
-        exporting
-          region    = folder_region
-        importing
-          folder_id = ls_fol_id
-        exceptions
-          others    = 1.
-
-      if sy-subrc eq 0.
-        l_folder_id-objtp = ls_fol_id-objtp.
-        l_folder_id-objyr = ls_fol_id-objyr.
-        l_folder_id-objno = ls_fol_id-objno.
-
-        l_object_id-objtp = doctp.
-        l_object_id-objyr = docyr.
-        l_object_id-objno = docno.
-
-        call function 'SO_OBJECT_READ'
-          exporting
-            folder_id                  = l_folder_id
-            object_id                  = l_object_id
-          tables
-            objcont                    = document_content
-          exceptions
-            active_user_not_exist      = 1
-            communication_failure      = 2
-            component_not_available    = 3
-            folder_not_exist           = 4
-            folder_no_authorization    = 5
-            object_not_exist           = 6
-            object_no_authorization    = 7
-            operation_no_authorization = 8
-            owner_not_exist            = 9
-            parameter_error            = 10
-            substitute_not_active      = 11
-            substitute_not_defined     = 12
-            system_failure             = 13
-            x_error                    = 14
-            others                     = 15.
-
-        if sy-subrc eq 0.
-          document_id-foltp = l_folder_id-objtp.
-          document_id-folyr = l_folder_id-objyr.
-          document_id-folno = l_folder_id-objno.
-          document_id-doctp = l_object_id-objtp.
-          document_id-docyr = l_object_id-objyr.
-          document_id-docno = l_object_id-objno.
-
-          l_document_id = document_id.
-
-          call function 'SO_DOCUMENT_READ_API1'
-            exporting
-              document_id                = l_document_id
-            importing
-              document_data              = lwa_document_data
-            tables
-              object_header              = lwa_object_header
-              object_content             = lwa_object_content_1
-              contents_hex               = lwa_contents_hex
-            exceptions
-              document_id_not_exist      = 1
-              operation_no_authorization = 2
-              x_error                    = 3
-              others                     = 4.
-
-          if sy-subrc eq 0.
-            clear: send_request, document, recipient, sent_to_all, fil_nm_txt.
-
-            try.
-                read table t_receivers into wa_t_receivers index 1.
-
-                mailto = wa_t_receivers-receiver.
-                send_request = cl_bcs=>create_persistent( ).
-
-                read table lwa_object_header into wa_object_header index 1.
-                if sy-subrc eq 0.
-                  find '=' in wa_object_header-line match offset moff.
-                  add 1 to moff.
-                  fil_nm = wa_object_header-line+moff.
-
-                  split fil_nm at '.' into table lt_url_tab.
-                  describe table lt_url_tab lines ld_url_tab_size.
-                  if ld_url_tab_size gt 1.
-                    read table lt_url_tab index ld_url_tab_size into file_ext.
-                  else.
-                    clear file_ext.
-                  endif.
-                endif.
-
-                fil_nm_txt = fil_nm.
-
-                if fil_nm_txt is initial.
-                  fil_nm_txt = 'Requested File is Attached'.
-                endif.
-
-                append 'The file you requested file is attached.' to ttext.
-
-                document = cl_document_bcs=>create_document(
-                                i_type    = 'RAW'
-                                i_text    = ttext
-                                i_subject = fil_nm_txt ).
-
-                call method document->add_attachment
-                  exporting
-                    i_attachment_type    = file_ext
-                    i_attachment_subject = fil_nm
-                    i_att_content_hex    = lwa_contents_hex
-                    i_attachment_header  = lwa_object_header
-                    i_attachment_size    = lwa_document_data-doc_size.
-
-                send_request->set_document( document ).
-                recipient = cl_cam_address_bcs=>create_internet_address( mailto ).
-                send_request->add_recipient( recipient ).
-                sent_to_all = send_request->send( i_with_error_screen = 'X' ).
-              catch cx_bcs into bcs_exception.
-                message i865(so) with bcs_exception->error_type.
-            endtry.
-
-            if sy-subrc eq 0.
-              if send_now eq 'X'.
-                submit rsconn01 with mode = 'INT' and return.
-              endif.
-            else.
-              message id sy-msgid type sy-msgty number sy-msgno
-                      with sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4 into ls_message-message.
-              ls_message-type = sy-msgty.
-              ls_message-id = sy-msgid.
-              ls_message-number = sy-msgno.
-              ls_message-message_v1 = sy-msgv1.
-              ls_message-message_v2 = sy-msgv2.
-              ls_message-message_v3 = sy-msgv3.
-              ls_message-message_v4 = sy-msgv4.
-              append ls_message to rt_messages.
-              return.
-            endif.
-            commit work.
-          else.
-            message id sy-msgid type sy-msgty number sy-msgno
-                    with sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4 into ls_message-message.
-            ls_message-type = sy-msgty.
-            ls_message-id = sy-msgid.
-            ls_message-number = sy-msgno.
-            ls_message-message_v1 = sy-msgv1.
-            ls_message-message_v2 = sy-msgv2.
-            ls_message-message_v3 = sy-msgv3.
-            ls_message-message_v4 = sy-msgv4.
-            append ls_message to rt_messages.
-            return.
-          endif.
-        else.
-          message id sy-msgid type sy-msgty number sy-msgno
-                  with sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4 into ls_message-message.
-          ls_message-type = sy-msgty.
-          ls_message-id = sy-msgid.
-          ls_message-number = sy-msgno.
-          ls_message-message_v1 = sy-msgv1.
-          ls_message-message_v2 = sy-msgv2.
-          ls_message-message_v3 = sy-msgv3.
-          ls_message-message_v4 = sy-msgv4.
-          append ls_message to rt_messages.
-          return.
-        endif.
-      else.
-        message id sy-msgid type sy-msgty number sy-msgno
-                with sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4 into ls_message-message.
-        ls_message-type = sy-msgty.
-        ls_message-id = sy-msgid.
-        ls_message-number = sy-msgno.
-        ls_message-message_v1 = sy-msgv1.
-        ls_message-message_v2 = sy-msgv2.
-        ls_message-message_v3 = sy-msgv3.
-        ls_message-message_v4 = sy-msgv4.
-        append ls_message to rt_messages.
-        return.
-      endif.
-    catch cx_root into ex.
-      text = ex->get_text( ).
-
-      message id sy-msgid type sy-msgty number sy-msgno
-              with sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4 into ls_message-message.
-      ls_message-type = sy-msgty.
-      ls_message-id = sy-msgid.
-      ls_message-number = sy-msgno.
-      ls_message-message_v1 = sy-msgv1.
-      ls_message-message_v2 = sy-msgv2.
-      ls_message-message_v3 = sy-msgv3.
-      ls_message-message_v4 = sy-msgv4.
-      append ls_message to rt_messages.
-      return.
-  endtry.
-
-  endmethod.
-
-
-* <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Static Public Method ZCL_BC_GOS=>GOS_GET_FILE_LIST
-* +-------------------------------------------------------------------------------------------------+
-* | [--->] IS_LPORB                       TYPE        SIBFLPORB
-* | [<---] T_ATTACHMENTS                  TYPE        ZBC_TT_0002
-* | [<---] RT_MESSAGES                    TYPE        BAPIRETTAB
-* +--------------------------------------------------------------------------------------</SIGNATURE>
-  METHOD gos_get_file_list.
-
-*O type ZBC_TT_0002, é somente um table type para a tabela SOOD
-    TYPES: BEGIN OF ts_key,
-             foltp     TYPE so_fol_tp,
-             folyr     TYPE so_fol_yr,
-             folno     TYPE so_fol_no,
-             objtp     TYPE so_obj_tp,
-             objyr     TYPE so_obj_yr,
-             objno     TYPE so_obj_no,
-             forwarder TYPE so_usr_nam,
-           END OF ts_key,
-
-           BEGIN OF ts_attachment,
-             foltp    TYPE so_fol_tp,
-             folyr    TYPE so_fol_yr,
-             folno    TYPE so_fol_no,
-             objtp    TYPE so_obj_tp,
-             objyr    TYPE so_obj_yr,
-             objno    TYPE so_obj_no,
-             brelguid TYPE oblguid32,
-             roletype TYPE oblroltype,
-           END OF ts_attachment,
-
-           tt_attachment TYPE TABLE OF ts_attachment.
-    DATA: ta_srgbtbrel     TYPE STANDARD TABLE OF srgbtbrel,
-          wa_srgbtbrel     TYPE srgbtbrel,
-          lta_sood         TYPE STANDARD TABLE OF sood,
-          lwa_sood         TYPE sood, ltp_pathin(1000) TYPE c,
-          ltp_filename     TYPE string,
-          ltp_sortfield    TYPE char30,
-          lta_objcont      TYPE soli_tab,
-          lta_attachments  TYPE tt_attachment,
-          lwa_attachments  LIKE LINE OF lta_attachments,
-          lo_boritem       TYPE REF TO cl_sobl_bor_item,
-          lo_al_item       TYPE REF TO cl_gos_al_item,
-          li_link          TYPE REF TO if_browser_link,
-          ls_option        TYPE obl_s_relt,
-          lt_options       TYPE obl_t_relt,
-          ls_key           TYPE ts_key,
-          ls_attachment    TYPE ts_attachment,
-          lt_attachment    TYPE tt_attachment,
-          lt_links         TYPE obl_t_link,
-          ls_link          TYPE obl_s_link,
-          lp_linkid        TYPE blnk_inst,
-          gs_lpor          TYPE sibflporb,
-          ls_message       TYPE bapiret2.
-
-    IF NOT is_lporb-typeid IS INITIAL AND NOT is_lporb-instid IS INITIAL.
-      SELECT * FROM srgbtbrel INTO TABLE ta_srgbtbrel
-        WHERE instid_a EQ is_lporb-instid
-         AND typeid_a EQ is_lporb-typeid
-         AND catid_a  EQ 'BO'.
-
-      IF sy-subrc EQ 0.
-        SORT ta_srgbtbrel BY instid_a typeid_a catid_a.
-        DELETE ADJACENT DUPLICATES FROM ta_srgbtbrel COMPARING instid_a typeid_a catid_a.
-
-        LOOP AT ta_srgbtbrel INTO wa_srgbtbrel.
-          CLEAR: lt_attachment[], lta_attachments[].
-
-          gs_lpor-instid = wa_srgbtbrel-instid_a.
-          gs_lpor-typeid = wa_srgbtbrel-typeid_a.
-          gs_lpor-catid  = wa_srgbtbrel-catid_a.
-
-          ls_option-sign = 'I'.
-          ls_option-option = 'EQ'.
-
-          ls_option-low = 'ATTA'.
-          APPEND ls_option TO lt_options.
-          ls_option-low = 'NOTE'.
-          APPEND ls_option TO lt_options.
-          ls_option-low = 'URL'.
-          APPEND ls_option TO lt_options.
-
-          TRY.
-              CALL METHOD cl_binary_relation=>read_links_of_binrels
-                EXPORTING
-                  is_object           = gs_lpor
-                  it_relation_options = lt_options
-                  ip_role             = 'GOSAPPLOBJ'
-                IMPORTING
-                  et_links            = lt_links.
-
-              LOOP AT lt_links INTO ls_link.
-                CASE ls_link-typeid_b .
-                  WHEN 'MESSAGE'.
-                    ls_key = ls_link-instid_b.
-                    MOVE-CORRESPONDING ls_key TO ls_attachment.
-                    ls_attachment-roletype = ls_link-roletype_b.
-                    IF ls_link-brelguid IS INITIAL.
-                      ls_attachment-brelguid = ls_link-relguidold.
-                    ELSE.
-                      ls_attachment-brelguid = ls_link-brelguid.
-                    ENDIF.
-                    APPEND ls_attachment TO lt_attachment.
-                  WHEN OTHERS.
-                    CONTINUE.
-                ENDCASE.
-              ENDLOOP.
-            CATCH cx_obl_parameter_error .
-            CATCH cx_obl_internal_error .
-            CATCH cx_obl_model_error .
-            CATCH cx_root.
-          ENDTRY.
-        ENDLOOP.
-
-        lta_attachments[] = lt_attachment[].
-        CHECK lines( lta_attachments ) > 0.
-
-        SELECT * FROM sood INTO TABLE lta_sood
-          FOR ALL ENTRIES IN lta_attachments
-          WHERE
-            objtp = lta_attachments-objtp  AND
-            objyr = lta_attachments-objyr  AND
-            objno = lta_attachments-objno.
+* Ermitteln Partner fuer Kopf
+  LOOP AT xmcvbak.
+    CLEAR mcpartner.
+    CLEAR mtp_komkhie.
+    MOVE sy-tabix TO mtp_tabix.
+    MOVE xmcvbak-supkz TO xmcvbpa_key-supkz.
+    MOVE xmcvbak-mandt TO xmcvbpa_key-mandt.
+    MOVE xmcvbak-vbeln TO xmcvbpa_key-vbeln.
+    MOVE 0             TO xmcvbpa_key-posnr.
+    READ TABLE xmcvbpa WITH KEY supkz = xmcvbpa_key-supkz
+                                mandt = xmcvbpa_key-mandt
+                                vbeln = xmcvbpa_key-vbeln
+                                posnr = xmcvbpa_key-posnr BINARY SEARCH.
+    IF sy-subrc EQ 0.
+      LOOP AT xmcvbpa FROM sy-tabix.
+        IF xmcvbpa-supkz NE xmcvbpa_key-supkz
+        OR xmcvbpa-vbeln NE xmcvbpa_key-vbeln
+        OR xmcvbpa-posnr NE xmcvbpa_key-posnr.
+          EXIT.
+        ENDIF.
+        PERFORM partner_erm USING xmcvbpa mcpartner.
+* Begin: Coding to use the dynamic hierarchie. see oss note 407087
+*        savtabix = sy-tabix.
+*        PERFORM maxhier_erm TABLES   xmcvbpa
+*                            USING    xmcvbpa_key-supkz
+*                                     xmcvbpa_key-vbeln
+*                                     xmcvbpa_key-posnr
+*                            CHANGING imaxhier.
+*        READ TABLE xmcvbpa INDEX savtabix.
+* End: Coding to use the dynamic hierarchie. see oss note 407087
+        PERFORM kundenhier_erm USING xmcvbpa imaxhier
+                               CHANGING mtp_komkhie.
+      ENDLOOP.
+    ENDIF.
+    MOVE-CORRESPONDING mcpartner   TO xmcvbak.
+    MOVE-CORRESPONDING mtp_komkhie TO xmcvbak.
+    MODIFY xmcvbak INDEX mtp_tabix.
+*   Ermitteln Partner fuer Position
+    MOVE mcpartner TO *mcpartner.
+    READ TABLE xmcvbap WITH KEY supkz = xmcvbak-supkz
+                                mandt = xmcvbak-mandt
+                                vbeln = xmcvbak-vbeln
+                                            BINARY SEARCH.
+    IF sy-subrc EQ 0.
+      LOOP AT xmcvbap FROM sy-tabix.
+        IF xmcvbap-supkz NE xmcvbak-supkz
+        OR xmcvbap-mandt NE xmcvbak-mandt
+        OR xmcvbap-vbeln NE xmcvbak-vbeln.
+          EXIT.
+        ENDIF.
+        MOVE *mcpartner TO mcpartner.
+        MOVE sy-tabix TO mtp_tabix.
+        MOVE xmcvbap-supkz TO xmcvbpa_key-supkz.
+        MOVE xmcvbap-mandt TO xmcvbpa_key-mandt.
+        MOVE xmcvbap-vbeln TO xmcvbpa_key-vbeln.
+        MOVE xmcvbap-posnr TO xmcvbpa_key-posnr.
+        READ TABLE xmcvbpa WITH KEY supkz = xmcvbpa_key-supkz
+                                    mandt = xmcvbpa_key-mandt
+                                    vbeln = xmcvbpa_key-vbeln
+                                    posnr = xmcvbpa_key-posnr
+                                    BINARY SEARCH.
         IF sy-subrc EQ 0.
-          t_attachments[] = lta_sood.
+          LOOP AT xmcvbpa FROM sy-tabix.
+            IF xmcvbpa-supkz NE xmcvbpa_key-supkz
+            OR xmcvbpa-vbeln NE xmcvbpa_key-vbeln
+            OR xmcvbpa-posnr NE xmcvbpa_key-posnr.
+              EXIT.
+            ENDIF.
+            PERFORM partner_erm USING xmcvbpa mcpartner.
+          ENDLOOP.
+        ENDIF.
+        MOVE-CORRESPONDING mcpartner TO xmcvbap.
+
+        IF ( xmcvbak-vbklt EQ vbklt_ausl_auft      OR
+             xmcvbak-vbklt EQ vbklt_ausl_auft_korr   ) AND
+           xmcvbap-pkunwe NE xmcvbap-pkunag.
+*         Bei MAIS-Aufträgen muß die Geschäftsjahresvariante
+*         aktualisiert werden, falls ein vom AG abweichender WE
+*         ermittelt wurde.
+          IF xmcvbap-pkunwe NE da_kna1_kunnr.
+            SELECT SINGLE kunnr periv FROM kna1
+              INTO (da_kna1_kunnr, da_kna1_periv)
+              WHERE kunnr EQ xmcvbap-pkunwe.
+            IF sy-subrc NE 0.
+              CLEAR: da_kna1_kunnr.
+            ENDIF.
+          ENDIF.
+          IF NOT da_kna1_kunnr IS INITIAL.
+            xmcvbap-periv_lf = da_kna1_periv.
+          ENDIF.
         ENDIF.
 
-        DATA rcode TYPE i.
-        DATA objhead_tab TYPE TABLE OF soli.
-        DATA objcont_tab TYPE TABLE OF soli.
-        DATA objpara_tab TYPE TABLE OF selc.
-        DATA objparb_tab TYPE TABLE OF soop1.
-        DATA sood_key TYPE soodk.
-        DATA hex_mode TYPE sonv-flag.
-        FIELD-SYMBOLS <fs> TYPE LINE OF zbc_tT_0002.
+        MODIFY xmcvbap INDEX mtp_tabix.
+      ENDLOOP.
+    ENDIF.
+  ENDLOOP.
 
-        LOOP AT t_attachments ASSIGNING <fs>.
-          IF NOT ( <fs>-objtp IS INITIAL OR <fs>-objyr IS INITIAL OR <fs>-objno IS INITIAL ).
-            CONCATENATE <fs>-objtp <fs>-objyr <fs>-objno INTO sood_key.
+* Ermitteln offene Mengen in den Einteilungen
+  DATA: flg_schedules.
+  DATA: da_fverrechnung.
+  LOOP AT xmcvbak.
+    READ TABLE xmcvbap WITH KEY supkz = xmcvbak-supkz
+                                mandt = xmcvbak-mandt
+                                vbeln = xmcvbak-vbeln
+                                BINARY SEARCH.
+    IF sy-subrc EQ 0.
+      LOOP AT xmcvbap FROM sy-tabix.
+        IF xmcvbap-supkz NE xmcvbak-supkz OR
+           xmcvbap-mandt NE xmcvbak-mandt OR
+           xmcvbap-vbeln NE xmcvbak-vbeln.
+          EXIT.
+        ENDIF.
+*     Kennzeichen alte VBLB/S073 für Lieferpläne Zulieferer
+        REFRESH: mtp_vblb.
+        IF xmcvbap-supkz CA con_supkz_alte AND
+           xmcvbak-abdis NE space.
+*     Kennzeichen alte VCBLB/S073 für Lieferpläne Zulieferer
+          MOVE true TO da_alt.
+*     Abrufzustand alt ermitteln für LAB und FAB und PAB.
+          PERFORM delivery_schedule_determine TABLES mtp_vblb
+                                              USING xmcvbap-vbeln
+                                                    xmcvbap-posnr
+                                                    abart_lab
+                                                    abart_fab
+                                                    abart_pab.
+        ELSE.
+          CLEAR da_alt.
+        ENDIF.
+*     Auftragsmengen für Lieferpläne Zulieferer
+        CLEAR posnr_kwmeng.
+        CLEAR xmcvbap-oaume.
+*
+        flg_schedules = true.
+        REFRESH: mtp_vbep, mtp_vbfa, mtp_vbup.
+        READ TABLE xmcvbep WITH KEY supkz = xmcvbap-supkz
+                                    mandt = xmcvbap-mandt
+                                    vbeln = xmcvbap-vbeln
+                                    posnr = xmcvbap-posnr
+                                    BINARY SEARCH.
+        IF sy-subrc EQ 0.
+          LOOP AT xmcvbep FROM sy-tabix.
+            IF xmcvbep-supkz NE xmcvbap-supkz OR
+               xmcvbep-mandt NE xmcvbap-mandt OR
+               xmcvbep-vbeln NE xmcvbap-vbeln OR
+               xmcvbep-posnr NE xmcvbap-posnr.
+              EXIT.
+            ENDIF.
+            MOVE-CORRESPONDING xmcvbep TO mtp_vbep. APPEND mtp_vbep.
+          ENDLOOP.
+        ENDIF.
+        IF sy-subrc NE 0. flg_schedules = false. ENDIF.
+        READ TABLE xmcvbfa WITH KEY supkz = xmcvbap-supkz
+                                    mandt = xmcvbap-mandt
+                                    vbelv = xmcvbap-vbeln
+                                    posnv = xmcvbap-posnr
+                                    BINARY SEARCH.
+        IF sy-subrc EQ 0.
+          LOOP AT xmcvbfa FROM sy-tabix.
+            IF xmcvbfa-supkz NE xmcvbap-supkz OR
+               xmcvbfa-mandt NE xmcvbap-mandt OR
+               xmcvbfa-vbelv NE xmcvbap-vbeln OR
+               xmcvbfa-posnv NE xmcvbap-posnr.
+              EXIT.
+            ENDIF.
+            MOVE-CORRESPONDING xmcvbfa TO mtp_vbfa. APPEND mtp_vbfa.
+          ENDLOOP.
+        ENDIF.
+        READ TABLE xmcvbup WITH KEY supkz = xmcvbap-supkz
+                                    mandt = xmcvbap-mandt
+                                    vbeln = xmcvbap-vbeln
+                                    posnr = xmcvbap-posnr
+                                    BINARY SEARCH.
+        IF sy-subrc EQ 0.
+          LOOP AT xmcvbup FROM sy-tabix.
+            IF xmcvbup-supkz NE xmcvbap-supkz OR
+               xmcvbup-mandt NE xmcvbap-mandt OR
+               xmcvbup-vbeln NE xmcvbap-vbeln OR
+               xmcvbup-posnr NE xmcvbap-posnr.
+              EXIT.
+            ENDIF.
+            MOVE-CORRESPONDING xmcvbup TO mtp_vbup. APPEND mtp_vbup.
+          ENDLOOP.
+        ENDIF.
+        IF sy-subrc NE 0. flg_schedules = false. ENDIF.
+        IF flg_schedules EQ true.
+          REFRESH mtp_vbap.
+          MOVE-CORRESPONDING xmcvbap TO mtp_vbap. APPEND mtp_vbap.
+          CLEAR xmcvbuk.
+          READ TABLE xmcvbuk WITH KEY supkz = xmcvbap-supkz
+                                      mandt = xmcvbap-mandt
+                                      vbeln = xmcvbap-vbeln
+                                      BINARY SEARCH.
+          CLEAR da_fverrechnung.
+          PERFORM get_quantity_for_update
+            USING     xmcvbap-vbeln
+                      xmcvbuk
+            CHANGING  da_fverrechnung.
+          CALL FUNCTION 'RV_SCHEDULE_CHECK_DELIVERIES'
+            EXPORTING
+              fbeleg                  = xmcvbak-vbeln
+              fposnr                  = xmcvbap-posnr
+              fverrechnung            = da_fverrechnung
+              fs073_alt               = da_alt
+            TABLES
+              fvbap                   = mtp_vbap
+              fvbfa                   = mtp_vbfa
+              fvbup                   = mtp_vbup
+              fvblb                   = mtp_vblb
+              fxvbep                  = mtp_vbep
+            EXCEPTIONS
+              fehler_bei_lesen_fvbup  = 1
+              fehler_bei_lesen_fxvbep = 2.
+          IF sy-subrc NE 0.
+            MESSAGE e812 WITH xmcvbak-vbeln sy-subrc.
+          ENDIF.
+          LOOP AT mtp_vbep.
+            if xmcvbak-abdis NE space.
+              READ TABLE xmcvbep WITH KEY supkz = xmcvbak-supkz
+                                        mandt = mtp_vbep-mandt
+                                        vbeln = mtp_vbep-vbeln
+                                        posnr = mtp_vbep-posnr
+                                        etenr = mtp_vbep-etenr
+                                          edatu = mtp_vbep-edatu.
+            else.
+              READ TABLE xmcvbep WITH KEY supkz = xmcvbak-supkz
+                                          mandt = mtp_vbep-mandt
+                                          vbeln = mtp_vbep-vbeln
+                                          posnr = mtp_vbep-posnr
+                                          etenr = mtp_vbep-etenr
+                                                       BINARY SEARCH.
+            endif.
+            IF sy-subrc EQ 0.
+              MOVE-CORRESPONDING mtp_vbep TO xmcvbep.
+*           Ermitteln Auftragsmengen für Lieferpläne Zulieferer
+              IF xmcvbak-abdis NE space.
+                IF xmcvbep-abart EQ abart_lab.
+*               Kumulieren Auftragseingang Position nur aus LAB
+                  ADD xmcvbep-swmeng TO posnr_kwmeng.
+                ENDIF.
+                MOVE xmcvbep-swmeng TO xmcvbep-wmeng.
+                ADD  xmcvbep-olfmng TO xmcvbap-oaume.
+              ENDIF.
+              MODIFY xmcvbep INDEX sy-tabix.
+            ELSE.
+              MESSAGE e813 WITH xmcvbep1_key.
+            ENDIF.
+          ENDLOOP.
+        ENDIF.
+        IF NOT xmcvbap-kwmeng IS INITIAL.
+          xmcvbap-netwr_vme = xmcvbap-netwr / xmcvbap-kwmeng.
+        ELSE.
+          xmcvbap-netwr_vme = 0.
+        ENDIF.
+*     Auftragsmengen/werte für Lieferpläne Zulieferer
+        IF     xmcvbak-abdis NE space.
+*         Auftragsmengen/werte für Statistikformeln speichern
+*         Buffer Order quantity and net value for statistic formulas
+          XMCVBAP-KWMENG_B = XMCVBAP-KWMENG.
+          XMCVBAP-NETWR_B  = XMCVBAP-NETWR.
 
-            PERFORM socx_select IN PROGRAM sapfsso0
-                                TABLES objhead_tab objcont_tab
-                                       objpara_tab objparb_tab
-                                USING  sood_key
-                                       hex_mode
-                                       rcode.
-            IF rcode EQ 0.
-              DATA moff TYPE i.
-              DATA l_param_search TYPE soli-line.
-              DATA l_param_head TYPE soli-line.
-              DATA value TYPE soli-line.
-              DATA wa_objhead_tab LIKE LINE OF objhead_tab.
-              DATA lt_url_tab TYPE TABLE OF so_url.
-              DATA ld_url_tab_size TYPE sytabix.
-              l_param_search = '&SO_FILENAME'.
-              TRANSLATE l_param_search TO UPPER CASE.
-              LOOP AT objhead_tab INTO wa_objhead_tab.
-                CLEAR moff.
-                FIND '=' IN wa_objhead_tab-line MATCH OFFSET moff.
-                CHECK sy-subrc = 0.
-                l_param_head = wa_objhead_tab-line(moff).
-                TRANSLATE l_param_head TO UPPER CASE.
-                IF l_param_head = l_param_search.
-                  ADD 1 TO moff.
-                  value = wa_objhead_tab-line+moff.
-                  IF NOT ( value IS INITIAL ).
-                    SPLIT value AT '.' INTO TABLE lt_url_tab.
-                    DESCRIBE TABLE lt_url_tab LINES ld_url_tab_size.
-                    IF ld_url_tab_size GT 1.
-                      READ TABLE lt_url_tab INDEX ld_url_tab_size INTO <fs>-acnam.
+          IF NOT xmcvbap-kwmeng IS INITIAL.
+          xmcvbap-netwr = posnr_kwmeng * xmcvbap-netwr / xmcvbap-kwmeng.
+          xmcvbap-kzwi1 = posnr_kwmeng * xmcvbap-kzwi1 / xmcvbap-kwmeng.
+          xmcvbap-kzwi2 = posnr_kwmeng * xmcvbap-kzwi2 / xmcvbap-kwmeng.
+          xmcvbap-kzwi3 = posnr_kwmeng * xmcvbap-kzwi3 / xmcvbap-kwmeng.
+          xmcvbap-kzwi4 = posnr_kwmeng * xmcvbap-kzwi4 / xmcvbap-kwmeng.
+          xmcvbap-kzwi5 = posnr_kwmeng * xmcvbap-kzwi5 / xmcvbap-kwmeng.
+          xmcvbap-kzwi6 = posnr_kwmeng * xmcvbap-kzwi6 / xmcvbap-kwmeng.
+          xmcvbap-wavwr = posnr_kwmeng * xmcvbap-wavwr / xmcvbap-kwmeng.
+*
+          xmcvbap-brgew = posnr_kwmeng * xmcvbap-brgew / xmcvbap-kwmeng.
+          xmcvbap-ntgew = posnr_kwmeng * xmcvbap-ntgew / xmcvbap-kwmeng.
+          xmcvbap-volum = posnr_kwmeng * xmcvbap-volum / xmcvbap-kwmeng.
+        xmcvbap-lsmeng = posnr_kwmeng * xmcvbap-lsmeng / xmcvbap-kwmeng.
+        xmcvbap-kbmeng = posnr_kwmeng * xmcvbap-kbmeng / xmcvbap-kwmeng.
+        xmcvbap-klmeng = posnr_kwmeng * xmcvbap-klmeng / xmcvbap-kwmeng.
+          ELSE.
+            xmcvbap-netwr = posnr_kwmeng * xmcvbap-netpr.
+          ENDIF.
+          xmcvbap-kwmeng = posnr_kwmeng.
+          MODIFY xmcvbap.
+        ENDIF.
+      ENDLOOP.
+    ENDIF.
+  ENDLOOP.
+
+* Kopieren Wunschlieferdatum auf korrespondierende best. Einteilungen
+  REFRESH mtp_wldat_vbep.
+  CLEAR mtp_open_wmeng.
+  SORT xmcvbep BY supkz mandt vbeln posnr abart edatu etenr.
+* alle Einteilungen mit Wunschliefermenge ermitteln
+  LOOP AT xmcvbep.
+    CHECK xmcvbep-cmeng <> 0.
+    CLEAR mtp_wldat_vbep.
+    MOVE-CORRESPONDING xmcvbep TO mtp_wldat_vbep.
+    MOVE sy-tabix TO mtp_wldat_vbep-tabix.
+    APPEND mtp_wldat_vbep.
+  ENDLOOP.
+  LOOP AT mtp_wldat_vbep.
+*   Übertrag bei negativer noch 'offener' Wunschliefermenge
+    IF mtp_open_wmeng < 0.
+      mtp_open_wmeng = mtp_open_wmeng + mtp_wldat_vbep-cmeng.
+    ELSE.
+      mtp_open_wmeng = mtp_wldat_vbep-cmeng.
+    ENDIF.
+    LOOP AT xmcvbep FROM mtp_wldat_vbep-tabix.
+*     nur die bestätigten bzw. noch nicht verarbeiteten Einteilungen
+      CHECK xmcvbep-bmeng <> 0 AND xmcvbep-wldatbe IS INITIAL.
+*     nur solange, wie neu/alt übereinstimmt oder die Wunschliefermenge
+*     durch die bereits verarbeiteten Einteilungen abgebaut ist
+      IF xmcvbep-supkz <> mtp_wldat_vbep-supkz OR
+         xmcvbep-vbeln <> mtp_wldat_vbep-vbeln OR
+         xmcvbep-posnr <> mtp_wldat_vbep-posnr OR
+         xmcvbep-abart <> mtp_wldat_vbep-abart OR
+         mtp_open_wmeng <= 0.
+        CLEAR mtp_open_wmeng.
+        EXIT.
+      ENDIF.
+      xmcvbep-wldatbe = mtp_wldat_vbep-edatu.
+      MODIFY xmcvbep.
+*     errechne die noch 'offene' Wunschliefermenge
+      mtp_open_wmeng = mtp_open_wmeng - xmcvbep-bmeng.
+    ENDLOOP.
+  ENDLOOP.
+  SORT xmcvbep BY supkz mandt vbeln posnr etenr.
+ENDFORM.                    "MC_TABLES_PREPARE1
+
+*---------------------------------------------------------------------*
+*       FORM MCINF_UPDATE_ALL                                         *
+*---------------------------------------------------------------------*
+*       Datenaufbereitung der Schnittstellentabellen zur Fort-        *
+*       schreibung der RV-Belege                                      *
+*---------------------------------------------------------------------*
+FORM mcinf_update_all.
+  TABLES: vbak, vbuk.
+  DATA: flg_offene_werte_ermitteln.
+
+* lies Belegkopfinformationen XMCVBAK XMCVBUK
+  LOOP AT xmcvbak.
+    MOVE xmcvbak-supkz TO xmcvbuk_key-supkz.
+    MOVE xmcvbak-mandt TO xmcvbuk_key-mandt.
+    MOVE xmcvbak-vbeln TO xmcvbuk_key-vbeln.
+    READ TABLE xmcvbuk WITH KEY supkz = xmcvbuk_key-supkz
+                                mandt = xmcvbuk_key-mandt
+                                vbeln = xmcvbuk_key-vbeln BINARY SEARCH.
+    IF sy-subrc NE ok.
+      CLEAR xmcvbuk.
+    ENDIF.
+*   wegen Kursumrechnung von Kopffeldern VBKD-PRSDT
+    MOVE xmcvbak-supkz TO xmcvbkd_key-supkz.
+    MOVE xmcvbak-mandt TO xmcvbkd_key-mandt.
+    MOVE xmcvbak-vbeln TO xmcvbkd_key-vbeln.
+    MOVE '000000'      TO xmcvbkd_key-posnr.
+    READ TABLE xmcvbkd WITH KEY supkz = xmcvbkd_key-supkz
+                                mandt = xmcvbkd_key-mandt
+                                vbeln = xmcvbkd_key-vbeln
+                                posnr = xmcvbkd_key-posnr BINARY SEARCH.
+    IF sy-subrc NE ok.
+      CLEAR xmcvbkd.
+    ENDIF.
+    IF xmcvbkd-kursk_dat IS INITIAL.
+      MOVE xmcvbkd-prsdt TO xmcvbkd-kursk_dat.
+    ENDIF.
+    IF xmcvbkd-kurrf_dat IS INITIAL.
+      MOVE xmcvbkd-prsdt TO xmcvbkd-kurrf_dat.
+    ENDIF.
+*
+    MOVE con_suhie_vbak TO suhie.
+    IF control-logging = true.
+      CLEAR mclogging.
+      mclogging-vbeln = xmcvbak-vbeln.
+      mclogging-stafo = xmcvbak-stafo.
+      mclogging-zeitp = zeitp.
+    ENDIF.
+    PERFORM xmcvbak_werte USING xmcvbak xmcvbak-vbtyp.
+    PERFORM update_call
+      USING suhie zeitp xmcvbak-stafo flg_tmc2f.
+*   lies Partnerinformationen XMCVBPA für Belegkopf
+    flg_tmc2f_vbpa = true.
+    MOVE xmcvbak-supkz TO xmcvbpa_key-supkz.
+    MOVE xmcvbak-mandt TO xmcvbpa_key-mandt.
+    MOVE xmcvbak-vbeln TO xmcvbpa_key-vbeln.
+    MOVE 0             TO xmcvbpa_key-posnr.
+    READ TABLE xmcvbpa WITH KEY supkz = xmcvbpa_key-supkz
+                                mandt = xmcvbpa_key-mandt
+                                vbeln = xmcvbpa_key-vbeln
+                                posnr = xmcvbpa_key-posnr BINARY SEARCH.
+    IF sy-subrc EQ 0.
+      LOOP AT xmcvbpa FROM sy-tabix.
+        IF xmcvbpa-supkz NE xmcvbpa_key-supkz
+        OR xmcvbpa-mandt NE xmcvbpa_key-mandt
+        OR xmcvbpa-vbeln NE xmcvbpa_key-vbeln
+        OR xmcvbpa-posnr NE xmcvbpa_key-posnr.
+          EXIT.
+        ENDIF.
+        IF flg_tmc2f_vbpa EQ false. EXIT. ENDIF.
+        MOVE con_suhie_vbpak TO suhie.
+        IF control-logging = true.
+          mclogging-parvw = xmcvbpa-parvw.
+        ENDIF.
+        PERFORM update_call
+          USING suhie zeitp xmcvbak-stafo flg_tmc2f_vbpa.
+      ENDLOOP.
+    ENDIF.
+*   lies Positionsinformationen XMCVBAP XMCVBUP XMCVBKD
+    READ TABLE xmcvbap WITH KEY supkz = xmcvbak-supkz
+                                mandt = xmcvbak-mandt
+                                vbeln = xmcvbak-vbeln
+                                            BINARY SEARCH.
+    IF sy-subrc EQ 0.
+      LOOP AT xmcvbap FROM sy-tabix.
+        IF xmcvbap-supkz NE xmcvbak-supkz
+        OR xmcvbap-mandt NE xmcvbak-mandt
+        OR xmcvbap-vbeln NE xmcvbak-vbeln.
+          EXIT.
+        ENDIF.
+        MOVE xmcvbap-supkz TO xmcvbup_key-supkz.
+        MOVE xmcvbap-mandt TO xmcvbup_key-mandt.
+        MOVE xmcvbap-vbeln TO xmcvbup_key-vbeln.
+        MOVE xmcvbap-posnr TO xmcvbup_key-posnr.
+        READ TABLE xmcvbup WITH KEY supkz = xmcvbup_key-supkz
+                                    mandt = xmcvbup_key-mandt
+                                    vbeln = xmcvbup_key-vbeln
+                                    posnr = xmcvbup_key-posnr
+                                    BINARY SEARCH.
+        IF sy-subrc NE ok.
+          CLEAR xmcvbup.
+        ENDIF.
+        MOVE xmcvbap-supkz TO xmcvbkd_key-supkz.
+        MOVE xmcvbap-mandt TO xmcvbkd_key-mandt.
+        MOVE xmcvbap-vbeln TO xmcvbkd_key-vbeln.
+        MOVE xmcvbap-posnr TO xmcvbkd_key-posnr.
+        READ TABLE xmcvbkd WITH KEY supkz = xmcvbkd_key-supkz
+                                    mandt = xmcvbkd_key-mandt
+                                    vbeln = xmcvbkd_key-vbeln
+                                    posnr = xmcvbkd_key-posnr
+                                    BINARY SEARCH.
+        IF sy-subrc NE ok.
+          MOVE '000000'      TO xmcvbkd_key-posnr.
+          READ TABLE xmcvbkd WITH KEY supkz = xmcvbkd_key-supkz
+                                      mandt = xmcvbkd_key-mandt
+                                      vbeln = xmcvbkd_key-vbeln
+                                      posnr = xmcvbkd_key-posnr
+                                      BINARY SEARCH.
+          IF sy-subrc NE ok.
+            CLEAR xmcvbkd.
+          ENDIF.
+        ENDIF.
+        IF xmcvbkd-kursk_dat IS INITIAL.
+          MOVE xmcvbkd-prsdt TO xmcvbkd-kursk_dat.
+        ENDIF.
+        IF xmcvbkd-kurrf_dat IS INITIAL.
+          MOVE xmcvbkd-prsdt TO xmcvbkd-kurrf_dat.
+        ENDIF.
+        MOVE xmcvbap-supkz TO xmcvbapf_key-supkz.
+        MOVE xmcvbap-vbeln TO xmcvbapf_key-vbeln.
+        MOVE xmcvbap-posnr TO xmcvbapf_key-posnr.
+        READ TABLE xmcvbapf WITH KEY supkz = xmcvbapf_key-supkz
+                                     vbeln = xmcvbapf_key-vbeln
+                                     posnr = xmcvbapf_key-posnr
+                                     BINARY SEARCH.
+        IF sy-subrc NE 0. CLEAR xmcvbapf. ENDIF.
+*       Ermitteln OAUME, OAUWE, OLIME, OLIKW
+        CLEAR erlmenge_f.
+        PERFORM offene_werte_erm TABLES xmcfplt
+                                 USING  xmcvbak
+                                        xmcvbup
+                                        xmcvbapf
+                                        xmcvbkd
+                                 CHANGING xmcvbap.
+        MOVE con_suhie_vbap TO suhie.
+        IF control-logging = true.
+          mclogging-posnr = xmcvbap-posnr.
+          mclogging-stafo = xmcvbap-stafo.
+          CLEAR mclogging-parvw.
+        ENDIF.
+        PERFORM xmcvbap_werte USING xmcvbap xmcvbak-vbtyp.
+        PERFORM update_call
+          USING suhie zeitp xmcvbap-stafo flg_tmc2f.
+        PERFORM komv_call USING con_suhie_komv.
+*       lies Einteilungsinformationen XMCVBEP
+        flg_tmc2f_vbep = true.
+        flg_tmc2f_vbpa = true.
+        flg_tmc2f_komv = true.
+        flg_tmc2f_fplt = true.
+        READ TABLE xmcvbep WITH KEY supkz = xmcvbap-supkz
+                                    mandt = xmcvbap-mandt
+                                    vbeln = xmcvbap-vbeln
+                                    posnr = xmcvbap-posnr
+                                    BINARY SEARCH.
+        IF sy-subrc EQ 0.
+          LOOP AT xmcvbep FROM sy-tabix.
+            IF xmcvbep-supkz NE xmcvbap-supkz
+            OR xmcvbep-mandt NE xmcvbap-mandt
+            OR xmcvbep-vbeln NE xmcvbap-vbeln
+            OR xmcvbep-posnr NE xmcvbap-posnr.
+              EXIT.
+            ENDIF.
+            IF  flg_tmc2f_vbep EQ false
+            AND flg_tmc2f_vbpa EQ false
+            AND flg_tmc2f_komv EQ false.
+              EXIT.
+            ENDIF.
+            MOVE con_suhie_vbep TO suhie.
+            IF control-logging = true.
+              mclogging-etenr = xmcvbep-etenr.
+            ENDIF.
+            IF ( NOT xmcvbep-bsart IS INITIAL OR
+             ( NOT xmcvbep-bdart IS INITIAL AND
+               NOT xmcvbep-plart IS INITIAL ) ) and
+* In case of CRM order go to ELSE branch, besides X, Z and A scenario
+* same logic as in LV07A001
+             ( xmcvbak-vbkla(2)   NE 'CR' OR
+               xmcvbak-vbkla+2(1) EQ 'X'  OR
+               xmcvbak-vbkla+2(1) EQ 'Z'  OR
+               xmcvbak-vbkla+2(1) EQ 'A' ).
+              IF NOT xmcvbep-bsart IS INITIAL AND
+                     xmcvbak-supkz CA con_supkz_neue.
+*               Bestellanforderung
+                IF xmcvbuk-cmgst CA 'B'.
+                  MOVE-CORRESPONDING xmcvbak TO vbak.
+                  MOVE-CORRESPONDING xmcvbuk TO vbuk.
+                  CALL FUNCTION 'SD_ORDER_SUBSEQUENT_ALLOWED'
+                    EXPORTING
+                      bvbak                   = vbak
+                      bvbuk                   = vbuk
+                      fofun                   = '02'  "Banf
+                    EXCEPTIONS
+                      error                   = 01
+                      warning                 = 02
+                      error_but_do_not_delete = 03.
+                  IF     sy-subrc      NE 0             AND
+                         control-modus EQ con_modus_sim AND
+                         control-srout NE 'DBL_'        AND
+                         xmcvbep-olfmng IS INITIAL      AND
+                         xmcvbup-absta  CA ' A'         AND
+                         xmcvbap-lsmeng GT xmcvbap-kbmeng.
+*                   Wenn Reservierung zurückgenommen wird und
+*                   Prüfung und keine Kreditneuvergabe
+                    MOVE xmcvbep-wmeng TO xmcvbep-olfmng.
+                  ENDIF.
+                ENDIF.
+              ENDIF.
+              PERFORM offene_werte_eint USING    xmcvbep xmcvbap.
+*                                       CHANGING XMCVBEP.
+            ELSE.
+*     Dienstleistungen, die lieferrelevant sind, sollen bei Kredit-
+*     sperre keinen offenen Auftragswert absetzen, aber beim Prüfen
+*     des Kreditlimits für den aktuellen Beleg ist der offene Auf-
+*     tragswert aufzubauen.
+              flg_offene_werte_ermitteln = true.
+              IF xmcvbuk-cmgst CA 'B'.
+                MOVE-CORRESPONDING xmcvbak TO vbak.
+*     After the clearing of VBAK-VBKLA, the system will take the order
+*     as a R/3 order. Furthermore, the behaviour of credit consuming of
+*     the CRM order will be same as the one of R/3 order.
+                CLEAR VBAK-VBKLA.
+                MOVE-CORRESPONDING xmcvbuk TO vbuk.
+                CALL FUNCTION 'SD_ORDER_SUBSEQUENT_ALLOWED'
+                  EXPORTING
+                    bvbak                   = vbak
+                    bvbuk                   = vbuk
+                    fofun                   = '01'
+                  EXCEPTIONS
+                    error                   = 01
+                    warning                 = 02
+                    error_but_do_not_delete = 03.
+                IF sy-subrc NE 0.
+*                 Reservierung zurücknehmen
+                  IF control-modus NE con_modus_sim.
+*                   normale Fortschreibung
+                    CLEAR flg_offene_werte_ermitteln.
+                  ELSEIF control-srout EQ 'DBL_'.
+*                   Ermitteln offene Werte bei Kreditneuvergabe
+                    CLEAR flg_offene_werte_ermitteln.
+                  ELSE.
+*                   Simulationsmodus (Prüfmodus)
+                    IF xmcvbak-supkz CA con_supkz_alte.
+*                     nur für den neuen Belegzustand
+                      CLEAR flg_offene_werte_ermitteln.
                     ENDIF.
                   ENDIF.
                 ENDIF.
-              ENDLOOP.
+              ENDIF.
+              IF NOT flg_offene_werte_ermitteln IS INITIAL.
+                PERFORM offene_werte_eint USING    xmcvbep xmcvbap.
+*                                         CHANGING XMCVBEP.
+              ENDIF.
             ENDIF.
-          ENDIF.
-        ENDLOOP.
-      ELSE.
+*           Ermitteln offene Liefermenge pro Einteilung (geliefert und
+*           noch nicht fakturiert)
+            IF xmcvbep-vsmng GE erlmenge_f.
+              xmcvbep-ofamng = xmcvbep-vsmng - erlmenge_f.
+              erlmenge_f = 0.
+            ELSE.
+              xmcvbep-ofamng = 0.
+              erlmenge_f = erlmenge_f - xmcvbep-vsmng.
+            ENDIF.
+            IF erlmenge_f LT 0. CLEAR erlmenge_f. ENDIF.
+*           Ende
+            PERFORM xmcvbep_werte USING xmcvbap
+                                        xmcvbep xmcvbuk-vbtyp.
+            IF flg_tmc2f_vbep EQ true.
+              PERFORM update_call
+                USING suhie zeitp xmcvbap-stafo flg_tmc2f_vbep.
+            ENDIF.
+*           lies Konditionen XMCKOMV mit Einteilungen
+            PERFORM komv_call USING con_suhie_vbepkomv.
+*           lies Partnerinformationen XMCVBPA mit Einteilungen
+            PERFORM vbpap_call USING con_suhie_vbpape.
+            IF control-logging = true.
+              CLEAR mclogging-parvw.
+            ENDIF.
+          ENDLOOP.
+        ENDIF.
+*       lies Partnerinformationen XMCVBPA ohne Einteilungen
+        IF control-logging = true.
+          CLEAR mclogging-etenr.
+        ENDIF.
+        PERFORM vbpap_call USING con_suhie_vbpap.
+*       Termine des Fakturierungsplans
+        PERFORM fplt_call USING con_suhie_fplt.
+      ENDLOOP.
+    ENDIF.
+  ENDLOOP.
 
-        ls_message-type = sy-msgty.
-        ls_message-id = sy-msgid.
-        ls_message-number = sy-msgno.
-        ls_message-message_v1 = sy-msgv1.
-        ls_message-message_v2 = sy-msgv2.
-        ls_message-message_v3 = sy-msgv3.
-        ls_message-message_v4 = sy-msgv4.
-        APPEND ls_message TO rt_messages.
-        RETURN.
+* Update Datenbanktabelle aus interner Tabelle
+  CHECK control-logging NE true.
+
+  PERFORM perform_on_commit_aktiv USING control-modus
+                                        mcinf-low
+                                        flg_verbuchung
+                             CHANGING sy-subrc.
+  IF sy-subrc = 4.
+    PERFORM update_from_int ON COMMIT.
+  ELSE.
+    PERFORM update_from_int.
+  ENDIF.
+
+ENDFORM.                    "MCINF_UPDATE_ALL
+
+
+*---------------------------------------------------------------------*
+*       FORM OFFENE_WERTE_EINT                                        *
+*---------------------------------------------------------------------*
+*       ........                                                      *
+*---------------------------------------------------------------------*
+*  -->  OWE_MCVBEP                                                    *
+*  -->  OWE_MCVBAP                                                    *
+*---------------------------------------------------------------------*
+FORM offene_werte_eint   USING    owe_mcvbep STRUCTURE mcvbepb
+                                  owe_mcvbap STRUCTURE mcvbapb.
+*                        CHANGING OWE_MCVBEP STRUCTURE MCVBEPB.
+  owe_mcvbep-oeime = owe_mcvbep-olfmng.
+  PERFORM cmpre_calculate(saplvkmp)
+    USING    owe_mcvbap-cmpre
+             owe_mcvbap-cmpre_flt
+             owe_mcvbep-olfmng
+             owe_mcvbep-abges
+    CHANGING owe_mcvbep-oeikw
+             owe_mcvbep-oeikwges
+             owe_mcvbep-oeikwaa.
+ENDFORM.                    "OFFENE_WERTE_EINT
+
+*---------------------------------------------------------------------*
+*       FORM OFFENE_WERTE_ERM                                         *
+*---------------------------------------------------------------------*
+*       ........                                                      *
+*---------------------------------------------------------------------*
+*  -->  OW_MCVBUP                                                     *
+*  -->  OW_MCVBAPF                                                    *
+*  -->  OW_MCVBAP                                                     *
+*---------------------------------------------------------------------*
+FORM offene_werte_erm TABLES   ow_mcfplt  STRUCTURE mcfpltb
+                      USING    ow_mcvbak  STRUCTURE mcvbakb
+                               ow_mcvbup  STRUCTURE mcvbupb
+                               ow_mcvbapf STRUCTURE mcvbafb
+                               ow_mcvbkd  STRUCTURE mcvbkdb
+                      CHANGING ow_mcvbap  STRUCTURE mcvbapb.
+  LOCAL: ow_mcvbapf-remng.
+  LOCAL: ow_mcvbup-fksaa.
+
+* Differential billing switch, statics for performance.     "v 1882256
+* Initialised with 'I' different from the valid values
+* ' ' and 'X'.
+  STATICS: sv_bill_diff_active        TYPE char1 value 'I'. "^ 1882256
+
+  DATA: owe_erlmenge_l LIKE vbapf-erlmenge_l. "in VME
+  DATA: owe_erlmenge_f LIKE vbapf-erlmenge_f. "in VME
+  DATA: lv_remng       LIKE ow_mcvbapf-remng.
+  DATA: lv_wemng       LIKE ow_mcvbapf-wemng.
+  DATA: owe_cmpre_flt LIKE vbap-cmpre_flt.
+  DATA: flg_offene_werte_ermitteln.
+  DATA: flg_reset_olimeau.
+  DATA: wa_tvau  like tvau.
+  DATA: da_index LIKE sy-index.
+  DATA: ls_xmcvbfa LIKE xmcvbfa,
+        ls_t691k   LIKE t691k.
+  DATA: ls_vbup LIKE vbup.
+  DATA: flg_third_party.
+  DATA: lv_cred_val_nf_done   TYPE xfeld VALUE ' '.         "v 1882256
+  DATA: lv_cred_val_nf        TYPE mcvbapb-olikw.
+  DATA: lv_abges              TYPE mcvbapb-abges.           "^ 1882256
+
+* Differential billing: One call for performance reasons.   "v 1882256
+  IF sv_bill_diff_active = 'I'.
+    sv_bill_diff_active = cl_sd_bill_switch_check=>sd_sfws_bill_diff_1( ).
+  ENDIF.                                                    "^ 1882256
+*
+  IF NOT ow_mcvbap-kzfme IS INITIAL.
+*   Wirkstoff
+    owe_erlmenge_l = ow_mcvbapf-erlmengelv.
+    ow_mcvbapf-remng = ow_mcvbapf-remngv.
+  ELSE.
+    owe_erlmenge_l = ow_mcvbapf-erlmenge_l.
+    IF ow_mcvbap-vrkme NE ow_mcvbap-meins.
+      PERFORM lagermenge_betrag        "hier Verkaufsmenge
+        USING    xmcvbap-meins
+                 xmcvbap-vrkme
+                 xmcvbap-umvkn
+                 xmcvbap-umvkz
+                 ow_mcvbapf-erlmenge_l
+        CHANGING owe_erlmenge_l.
+      IF NOT ow_mcvbapf-remng IS INITIAL.
+        lv_remng = ow_mcvbapf-remng.
+        PERFORM lagermenge_betrag      "hier Verkaufsmenge
+          USING    xmcvbap-meins
+                   xmcvbap-vrkme
+                   xmcvbap-umvkn
+                   xmcvbap-umvkz
+                   lv_remng
+          CHANGING ow_mcvbapf-remng.
       ENDIF.
-    ELSE.
+      IF NOT ow_mcvbapf-wemng IS INITIAL.
+        lv_wemng = ow_mcvbapf-wemng.
+        PERFORM lagermenge_betrag      "hier Verkaufsmenge
+          USING    xmcvbap-meins
+                   xmcvbap-vrkme
+                   xmcvbap-umvkn
+                   xmcvbap-umvkz
+                   lv_wemng
+          CHANGING ow_mcvbapf-wemng.
+      ENDIF.
+    ENDIF.
+  ENDIF.
+*
+  IF NOT ow_mcvbak-abdis IS INITIAL.
+*   Im Zuliefererfall wird die OAUME schon im TABLES_PREPARE gefüllt
+    CLEAR: ow_mcvbap-oauwe.
+    IF NOT ow_mcvbap-kwmeng IS INITIAL.
+      ow_mcvbap-oauwe = ow_mcvbap-oaume *
+                      ( ow_mcvbap-netwr / ow_mcvbap-kwmeng ).
+    ENDIF.
+  ELSE.
+    CLEAR: ow_mcvbap-oaume, ow_mcvbap-oauwe.
+* clear: ow_mcvbap-oaukw, ow_mcvbap-oaukwaa, ow_mcvbap-oaukwges.
+    IF ow_mcvbup-lfgsa CA 'AB'
+    AND ow_mcvbap-lsmeng > owe_erlmenge_l.
+      ow_mcvbap-oaume = ow_mcvbap-lsmeng - owe_erlmenge_l.
+      IF NOT ow_mcvbap-kwmeng IS INITIAL.
+        ow_mcvbap-oauwe = ow_mcvbap-oaume *
+                        ( ow_mcvbap-netwr / ow_mcvbap-kwmeng ).
+      ENDIF.
+*   if not ow_mcvbap-lfrel is initial.
+*     flg_offene_werte_ermitteln = true.
+*     if xmcvbuk-cmgst ca 'B'.
+*       move-corresponding xmcvbak to vbak.
+*       move-corresponding xmcvbuk to vbuk.
+*       call function 'SD_ORDER_SUBSEQUENT_ALLOWED'
+*            exporting
+*                 bvbak   = vbak
+*                 bvbuk   = vbuk
+*                 fofun   = '01'
+*            exceptions
+*                 error   = 01
+*                 warning = 02.
+*       if sy-subrc ne 0.
+*         Reservierung zurücknehmen
+*         if control-modus ne con_modus_sim.
+*           normale Fortschreibung
+*           clear flg_offene_werte_ermitteln.
+*         elseif control-srout eq 'DBL_'.
+*            Ermitteln offene Werte bei Kreditneuvergabe
+*           clear flg_offene_werte_ermitteln.
+*         else.
+*           Simulationsmodus (Prüfmodus)
+*           if xmcvbak-supkz ca con_supkz_alte.
+*             nur für den neuen Belegzustand
+*             clear flg_offene_werte_ermitteln.
+*           endif.
+*         endif.
+*       endif.
+*     endif.
+*     if not flg_offene_werte_ermitteln is initial.
+*       perform cmpre_calculate(saplvkmp)
+*        using    ow_mcvbap-cmpre
+*                 ow_mcvbap-cmpre_flt
+*                 ow_mcvbap-oaume
+*                 ow_mcvbap-abges
+*        changing ow_mcvbap-oaukw
+*                 ow_mcvbap-oaukwges
+*                 ow_mcvbap-oaukwaa.
+*     endif.
+*   endif.
+    ENDIF.
+  ENDIF.
+* offene Liefermenge, offener Lieferwert
+  CLEAR:
+    ow_mcvbap-olime,
+    ow_mcvbap-olikw,
+    ow_mcvbap-olikwges,
+    ow_mcvbap-olikwaa,
+    ow_mcvbap-olimeau,
+    ow_mcvbap-olikwau,
+    ow_mcvbap-olikwauges,
+    ow_mcvbap-olikwauaa.
 
-      ls_message-type = sy-msgty.
-      ls_message-id = sy-msgid.
-      ls_message-number = sy-msgno.
-      ls_message-message_v1 = sy-msgv1.
-      ls_message-message_v2 = sy-msgv2.
-      ls_message-message_v3 = sy-msgv3.
-      ls_message-message_v4 = sy-msgv4.
-      APPEND ls_message TO rt_messages.
-      RETURN.
+* nur, wenn überhaupt fakturarelevant aber nicht Proforma
+  CHECK NOT ow_mcvbap-fkrel IS INITIAL AND
+            ow_mcvbap-fkrel CN con_fkrel_proform.
+
+* Bei auftragsbezogener Faktura gemäß RE-Menge und Kredit sitzt der
+* Fakturastatus auf SPACE, obwohl Fakturen kommen werden, sobald
+* RE-Menge vorhanden ist.
+  IF ow_mcvbap-fkrel     EQ charf   AND
+     ow_mcvbup-fksaa     EQ space   AND
+     ow_mcvbup-gbsta     CA 'AB'    AND
+     ow_mcvbap-abgru     IS INITIAL.
+    ow_mcvbup-fksaa = chara.
+  ENDIF.
+
+  IF NOT ow_mcvbap-kzfme IS INITIAL.
+*   Wirkstoff
+    owe_erlmenge_f = ow_mcvbapf-faklmengv.
+  ELSE.
+    owe_erlmenge_f = ow_mcvbapf-faklmeng.
+  ENDIF.
+
+  IF NOT ow_mcvbap-shkzg IS INITIAL.
+*   Retoure
+    IF NOT ow_mcvbap-kzfme IS INITIAL AND
+       ow_mcvbapf-faklmengv IS INITIAL.
+*     Wirkstoff
+      owe_erlmenge_f = ow_mcvbapf-omengev - ow_mcvbapf-smengev.
+    ELSEIF ow_mcvbapf-faklmeng IS INITIAL.
+      owe_erlmenge_f = ow_mcvbapf-omenge - ow_mcvbapf-smenge.
+    ENDIF.
+  ENDIF.
+* direkter Bezug
+  IF ow_mcvbup-fksaa CA 'ABC'.
+    IF NOT ow_mcvbap-kzfme IS INITIAL.
+*     Wirkstoff
+      owe_erlmenge_f = ow_mcvbapf-erlmengefv.
+    ELSE.
+      owe_erlmenge_f = ow_mcvbapf-erlmenge_f.
+    ENDIF.
+  ENDIF.
+  IF ow_mcvbap-vrkme NE ow_mcvbap-meins AND
+     ow_mcvbap-kzfme IS INITIAL.
+    PERFORM lagermenge_betrag          "hier Verkaufsmenge
+      USING    xmcvbap-meins
+               xmcvbap-vrkme
+               xmcvbap-umvkn
+               xmcvbap-umvkz
+               owe_erlmenge_f
+      CHANGING owe_erlmenge_f.
+  ENDIF.
+*
+ENHANCEMENT-SECTION     OFFENE_WERTE_ERM_03 SPOTS ES_SAPLMCS1.
+  IF owe_erlmenge_l GE owe_erlmenge_f AND
+     ow_mcvbak-abdis IS INITIAL.
+*   darf nicht negativ werden
+    ow_mcvbap-olime = owe_erlmenge_l - owe_erlmenge_f.
+    ls_xmcvbfa-abges = ow_mcvbap-abges.
+    IF ow_mcvbap-olime GT 0 AND
+       ow_mcvbap-fkrel CA con_fkrel_lieferbez.
+*   Payment cards shall not be affected (use mcvbap-abges)
+      PERFORM ABSICHERUNGSFORM_LESEN(SAPLVKMP)
+              USING ow_mcvbap-abfor
+              CHANGING ls_t691k.
+      IF ls_t691k-abstp NE '3'.
+*   ABGES for quantity OLIME must be determined from the deliveries
+        READ TABLE xmcvbfa WITH KEY
+                   supkz = ow_mcvbap-supkz
+                   mandt = ow_mcvbap-mandt
+                   vbelv = ow_mcvbap-vbeln
+                   posnv = ow_mcvbap-posnr
+                   BINARY SEARCH.
+        IF sy-subrc EQ 0.
+          CLEAR: ls_xmcvbfa.
+          LOOP AT xmcvbfa FROM sy-tabix
+             WHERE stufe EQ 0.      "nur direkte Nachfolger
+            check cl_sd_doc_category_util=>is_delivery_outgoing( xmcvbfa-vbtyp_n ).
+            IF xmcvbfa-supkz NE ow_mcvbap-supkz OR
+               xmcvbfa-mandt NE ow_mcvbap-mandt OR
+               xmcvbfa-vbelv NE ow_mcvbap-vbeln OR
+               xmcvbfa-posnv NE ow_mcvbap-posnr.
+              EXIT.
+            ENDIF.
+* only open deliveries should be taken in account
+              CALL FUNCTION 'SD_VBUP_SELECT'
+                EXPORTING
+                  i_document_number = xmcvbfa-vbeln
+                  i_item_number     = xmcvbfa-posnn
+                IMPORTING
+                  E_VBUP            = ls_vbup
+                EXCEPTIONS
+                  ITEM_NOT_FOUND    = 1
+                  ERROR_MESSAGE     = 2.
+              IF sy-subrc NE 0.
+                CLEAR ls_vbup.   "delivery already archived -> no update
+              ELSE.
+                IF ls_vbup-fksta = 'C'.
+                CONTINUE.
+                ENDIF.
+              ENDIF.
+              ls_xmcvbfa-abges = ls_xmcvbfa-abges
+                               + xmcvbfa-rfmng * xmcvbfa-abges.
+            ls_xmcvbfa-rfmng = ls_xmcvbfa-rfmng + xmcvbfa-rfmng.
+          ENDLOOP.
+          ls_xmcvbfa-abges = ls_xmcvbfa-abges / ls_xmcvbfa-rfmng.
+        ENDIF.
+      ENDIF.
     ENDIF.
 
-  ENDMETHOD.
-
-
-* <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Static Public Method ZCL_BC_GOS=>GOS_GET_FILE_SOLITAB
-* +-------------------------------------------------------------------------------------------------+
-* | [--->] FOLDER_REGION                  TYPE        SO_FOL_RG
-* | [--->] DOCTP                          TYPE        SO_OBJ_TP
-* | [--->] DOCYR                          TYPE        SO_OBJ_YR
-* | [--->] DOCNO                          TYPE        SO_OBJ_NO
-* | [<---] O_CONTENT_SOLITAB              TYPE        SOLI_TAB
-* | [<---] O_FILE_NAME                    TYPE        STRING
-* | [<---] O_MIMETYPE                     TYPE        W3CONTTYPE
-* | [<---] O_CONTENT                      TYPE        STRING
-* | [<---] O_FILELENGTH                   TYPE        I
-* | [<---] RT_MESSAGES                    TYPE        BAPIRETTAB
-* +--------------------------------------------------------------------------------------</SIGNATURE>
-  method GOS_GET_FILE_SOLITAB.
-
-
-      data: ex type ref to cx_root,
-        text type string,
-        l_folder_id type soodk,
-        l_object_id type soodk,
-        document_id type sofmk,
-        lo_root type ref to cx_root,
-        ls_fol_id type soodk,
-        lwa_document_data type sofolenti1,
-        document_content type standard table of soli,
-        lwa_object_header type standard table of solisti1,
-        l_subrc type int4,
-        l_objkey type soodk,
-        lt_data type standard table of solisti1,
-        lt_xdata type solix_tab,
-        ls_xdata type solix,
-        ls_data type solisti1,
-        l_data type string,
-        l_xdata type xstring,
-        l_xdata_line type xstring,
-        l_filename type string,
-        l_mimetype type string,
-        l_document_id type sofolenti1-doc_id,
-        l_document_data type sofolenti1,
-        lt_header type soli_tab,
-        lv_filename type string,
-        lo_header type ref to cl_bcs_objhead,
-        file type string, dot_offset type i,
-        extension type mimetypes-extension,
-        mimetype type mimetypes-type,
-        lv_message type bapiret2.
-
-  try.
-      call function 'SO_FOLDER_ROOT_ID_GET'
-        exporting
-          region    = folder_region
-        importing
-          folder_id = ls_fol_id
-        exceptions
-          others    = 1.
-
-      if sy-subrc eq 0.
-        l_folder_id-objtp = ls_fol_id-objtp.
-        l_folder_id-objyr = ls_fol_id-objyr.
-        l_folder_id-objno = ls_fol_id-objno.
-
-        l_object_id-objtp = doctp.
-        l_object_id-objyr = docyr.
-        l_object_id-objno = docno.
-
-        call function 'SO_OBJECT_READ'
-          exporting
-            folder_id                  = l_folder_id
-            object_id                  = l_object_id
-          tables
-            objcont                    = document_content
-          exceptions
-            active_user_not_exist      = 1
-            communication_failure      = 2
-            component_not_available    = 3
-            folder_not_exist           = 4
-            folder_no_authorization    = 5
-            object_not_exist           = 6
-            object_no_authorization    = 7
-            operation_no_authorization = 8
-            owner_not_exist            = 9
-            parameter_error            = 10
-            substitute_not_active      = 11
-            substitute_not_defined     = 12
-            system_failure             = 13
-            x_error                    = 14
-            others                     = 15.
-
-        if sy-subrc eq 0.
-          document_id-foltp = l_folder_id-objtp.
-          document_id-folyr = l_folder_id-objyr.
-          document_id-folno = l_folder_id-objno.
-          document_id-doctp = l_object_id-objtp.
-          document_id-docyr = l_object_id-objyr.
-          document_id-docno = l_object_id-objno.
-
-          l_document_id = document_id.
-
-          call function 'SO_DOCUMENT_READ_API1'
-            exporting
-              document_id                = l_document_id
-            importing
-              document_data              = l_document_data
-            tables
-              object_header              = lt_header
-              object_content             = lt_data
-              contents_hex               = lt_xdata
-            exceptions
-              document_id_not_exist      = 1
-              operation_no_authorization = 2
-              x_error                    = 3
-              others                     = 4.
-
-          move l_document_data-doc_size to o_filelength.
-
-          if sy-subrc <> 0.
-            l_subrc = sy-subrc.
-            lv_message-type = 'E'.
-            if sy-msgid is not initial and sy-msgno is not initial.
-              lv_message-id = sy-msgid.
-              lv_message-number = sy-msgno.
-              lv_message-message_v1 = sy-msgv1.
-              lv_message-message_v2 = sy-msgv2.
-              lv_message-message_v3 = sy-msgv3.
-              lv_message-message_v4 = sy-msgv4.
-            elseif l_subrc = 2.
-              lv_message-id = 'SO'.
-              lv_message-number = '055'.
-              lv_message-message_v1 = l_document_id.
-            else.
-              lv_message-id = 'SO'.
-              lv_message-number = '006'.
-              lv_message-message_v1 = l_document_id.
-            endif.
-            append lv_message to rt_messages.
-            return.
-          endif.
-
-          lo_header = cl_bcs_objhead=>create( lt_header ).
-          lv_filename = lo_header->get_filename( ).
-          o_file_name = lv_filename.
-
-          file = o_file_name.
-          find first occurrence of regex '\.[^\.]+$' in file match offset dot_offset.
-          add 1 to dot_offset.
-          extension = file+dot_offset.
-
-          call function 'SDOK_MIMETYPE_GET'
-            exporting
-              extension = extension
-            importing
-              mimetype  = o_mimetype.
-
-          data conv_out type ref to cl_abap_conv_out_ce.
-
-          if lt_data is not initial.
-            o_content_solitab[] = lt_data[].
-          endif.
-        endif.
+*   LEB (Lieferempfangsbestätigung) / POD (Proof of Delivery)
+*   Bei FKREL lieferbezogen ohne Nullmenge ist die Lieferung erledigt,
+*   wenn durch die LEB die Liefermenge auf Null geht - der Faktura
+*   status wird zurückgenommen (FKSTA = ' ') -> kein offener Lieferwert
+    IF ow_mcvbap-olime GT 0 AND
+       ow_mcvbap-fkrel CA con_fkrel_lfbz_keine_nullmg
+       AND ow_mcvbap-xchpf NE 'X'.
+      READ TABLE xmcvbfa WITH KEY
+                 supkz = ow_mcvbap-supkz
+                 mandt = ow_mcvbap-mandt
+                 vbelv = ow_mcvbap-vbeln
+                 posnv = ow_mcvbap-posnr
+                 BINARY SEARCH.
+* Teilmenge ist bereits fakturiert.
+      if not owe_erlmenge_f  is initial.
+       ow_mcvbap-olime = owe_erlmenge_l.
       endif.
-    catch cx_root into ex.
-      lv_message-id = sy-msgid.
-      lv_message-number = sy-msgno.
-      lv_message-message_v1 = sy-msgv1.
-      lv_message-message_v2 = sy-msgv2.
-      lv_message-message_v3 = sy-msgv3.
-      lv_message-message_v4 = sy-msgv4.
-      append lv_message to rt_messages.
-  endtry.
 
-  endmethod.
+      LOOP AT xmcvbfa FROM sy-tabix
+                      WHERE stufe EQ 0.      "nur direkte Nachfolger
+        check cl_sd_doc_category_util=>is_delivery_outgoing( xmcvbfa-vbtyp_n ).
+        CHECK xmcvbfa-supkz EQ ow_mcvbap-supkz AND
+              xmcvbfa-mandt EQ ow_mcvbap-mandt AND
+              xmcvbfa-vbelv EQ ow_mcvbap-vbeln AND
+              xmcvbfa-posnv EQ ow_mcvbap-posnr.
+        CALL FUNCTION 'SD_VBUP_SELECT'
+          EXPORTING
+            i_document_number       = xmcvbfa-vbeln
+            i_item_number           = xmcvbfa-posnn
+          IMPORTING
+            E_VBUP                  = ls_vbup
+          EXCEPTIONS
+            ITEM_NOT_FOUND          = 1
+            ERROR_MESSAGE           = 2.
+        IF sy-subrc NE 0.
+          CLEAR ls_vbup.   "delivery already archived -> no update
+        ELSE.
+        IF ( ls_vbup-fksta = space and ls_vbup-pdsta = charc ) or
+           ls_vbup-fksta = 'C'.
+*         rfmng ist in BasisME -> umrechnen in VRKME falls nötig
+          IF ow_mcvbap-vrkme NE ow_mcvbap-meins AND
+             ow_mcvbap-kzfme IS INITIAL.
+            PERFORM lagermenge_betrag
+                    USING    xmcvbfa-meins
+                             ow_mcvbap-vrkme
+                             ow_mcvbap-umvkn
+                             ow_mcvbap-umvkz
+                             xmcvbfa-rfmng
+                    CHANGING xmcvbfa-rfmng.
+          ENDIF.
+          ow_mcvbap-olime = ow_mcvbap-olime - xmcvbfa-rfmng.
+        ENDIF.
+       ENDIF.
+      ENDLOOP.
+    ENDIF.
+
+*   OW_MCVBAP-OLIKW = OW_MCVBAP-OLIME * OWE_CMPRE_FLT.
+    PERFORM cmpre_calculate(saplvkmp)
+      USING    ow_mcvbap-cmpre
+               ow_mcvbap-cmpre_flt
+               ow_mcvbap-olime
+               ls_xmcvbfa-abges
+      CHANGING ow_mcvbap-olikw
+               ow_mcvbap-olikwges
+               ow_mcvbap-olikwaa.
+
+*   Differential billing: OLIKW* have to be reduced by the  "v 1882256
+*   credit value contained in non-final billing documents.
+*   Non-final billing documents do not contribute to
+*   ERLMENGE_F. So up to here OLIKW* assumes the delivery
+*   is unbillled.
+    IF sv_bill_diff_active = abap_true.
+      PERFORM diff_cred_values_adjust TABLES   xmcvbfa
+                                      USING    ow_mcvbup
+                                               '1'  "For OLIKW* fields
+                                               ls_xmcvbfa-abges
+                                      CHANGING lv_cred_val_nf_done
+                                               lv_cred_val_nf
+                                               ow_mcvbap.
+    ENDIF.                                                  "^ 1882256
+
+  ENDIF.
+END-ENHANCEMENT-SECTION.
+*$*$-Start: OFFENE_WERTE_ERM_03-----------------------------------------------------------------$*$*
+ENHANCEMENT 4  OIA_SAPLMCS1.    "active version
+*NOTE 1248406
+*CSM 21-N0v-2008, Solution to rush order as per suggestions from Christof,
+*OLIKW should be calculated only when OLIME is not zero
+* Note 1324341  n_1687996 the test on OLIME should only be done for orders that are with immediate delivery
+* this is defined in TVAK-LISOF this should also not be done in RVKRED07 for Rush order
+* (when LISOF is not initial)
+
+*********beginning of note 1324341 n_1687996
+DATA: BEGIN OF lt_tvak OCCURS 10.
+          INCLUDE STRUCTURE tvak.
+DATA: END OF lt_tvak.
+DATA: l_nodelivery type c.
+DATA: l_lisof type c."n_1392345
+
+**********begininning of note 2006292
+DATA : ls_contract_reval TYPE boolean VALUE abap_false.
+**********end of note 2006292
+
+DATA: ls_vbfa TYPE MCVBFAB,
+      ls_vbrk    TYPE vbrk.
+* n_1392345
+* first Check if this is an idoc related
+* sales order with immediate delivery
+* Check if TAS G_OIKIMPORT-LISOF has been
+* setup in Function OIK_SD_CALLOFF_DELIVERY_CREATE
+IMPORT l_lisof FROM MEMORY ID 'OIK_DELIVERY_LISOF'. "n_1392345
+
+ IF l_lisof IS INITIAL. "n_1392345
+
+CALL FUNCTION 'MCV_TVAK_READ'
+  EXPORTING
+    I_AUART         = ow_mcvbak-auart
+  TABLES
+    T_TVAK          =  lt_tvak
+ EXCEPTIONS
+   NOT_FOUND       = 1
+   OTHERS          = 2.
+
+   read table lt_tvak index 1.
+             .
+  IF SY-SUBRC <> 0.
+  MESSAGE ID 'VT' TYPE 'E' NUMBER '356'
+         WITH ow_mcvbak-auart.
+  ENDIF.
+  MOVE lt_tvak-lisof TO l_lisof.   "n_1392345
+ ENDIF.
+
+* IF  NOT lt_tvak-lisof IS initial "n_1392345
+  IF NOT l_lisof IS INITIAL        "n_1392345
+     AND NOT ( sy-cprog = 'RVKRED07' or sy-cprog = 'UKM_RVKRED07' ).
+    IF owe_erlmenge_l GE owe_erlmenge_f AND
+     ow_mcvbak-abdis is initial.
+
+     ow_mcvbap-olime = owe_erlmenge_l - owe_erlmenge_f.
+
+    ENDIF.
+* check ow_mcvbap-olime GT 0.
+    IF ow_mcvbap-olime <= 0.
+    l_nodelivery = 'X'.
+    ENDIF.
+
+endif.
+
+ IF l_nodelivery IS initial.
+
+**********begininning of note 2006292
+"for contract revaluation check if we have invoice already created.
+"Note: 2216146: Ensuring note 2006292 for non-SD differential invoice scenario alone
+READ TABLE xmcvbfa[] INTO ls_vbfa with KEY vbtyp_n = 'M'.
+IF ls_vbfa IS NOT INITIAL.
+
+  SELECT SINGLE * FROM vbrk INTO ls_vbrk
+  WHERE vbeln = ls_vbfa-vbeln
+    AND fktyp = 'N'.
+
+  IF sy-subrc EQ 0.
+  LS_CONTRACT_REVAL = abap_true.
+endif.
+
+ENDIF.
+"End of note: 2216146
+**********end of note 2006292
 
 
-* <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Static Public Method ZCL_BC_GOS=>GOS_GET_FILE_XSTRING
-* +-------------------------------------------------------------------------------------------------+
-* | [--->] FOLDER_REGION                  TYPE        SO_FOL_RG
-* | [--->] DOCTP                          TYPE        SO_OBJ_TP
-* | [--->] DOCYR                          TYPE        SO_OBJ_YR
-* | [--->] DOCNO                          TYPE        SO_OBJ_NO
-* | [<---] O_FILE_NAME                    TYPE        STRING
-* | [<---] O_MIMETYPE                     TYPE        W3CONTTYPE
-* | [<---] O_CONTENT                      TYPE        STRING
-* | [<---] O_CONTENT_HEX                  TYPE        XSTRING
-* | [<---] RT_MESSAGES                    TYPE        BAPIRETTAB
-* +--------------------------------------------------------------------------------------</SIGNATURE>
-  method GOS_GET_FILE_XSTRING.
+******* end of note 1324341 n_1687996
+  IF ( NOT OW_MCVBAP-CMETH IS INITIAL AND LS_CONTRACT_REVAL eq abap_false ). "2006292
 
-  data: ex type ref to cx_root,
-        text type string,
-        l_folder_id type soodk,
-        l_object_id type soodk,
-        document_id type sofmk,
-        lo_root type ref to cx_root,
-        ls_fol_id type soodk,
-        lwa_document_data type sofolenti1,
-        document_content type standard table of soli,
-        lwa_object_header type standard table of solisti1,
-        l_subrc type int4,
-        l_objkey type soodk,
-        lt_data type standard table of solisti1,
-        lt_xdata type solix_tab,
-        ls_xdata type solix,
-        ls_data type solisti1,
-        l_data type string,
-        l_xdata type xstring,
-        l_xdata_line type xstring,
-        l_filename type string,
-        l_mimetype type string,
-        l_document_id type sofolenti1-doc_id,
-        l_document_data type sofolenti1,
-        lt_header type soli_tab,
-        lv_filename type string,
-        lo_header type ref to cl_bcs_objhead,
-        file type string, dot_offset type i,
-        extension type mimetypes-extension,
-        mimetype type mimetypes-type,
-        lv_message type bapiret2.
+ PERFORM oi_offene_werte_erm_del_qci "1248406
+    TABLES   ow_mcfplt
+             xmcvbfa
+             xmcvbuk
+             xmcvbup
+    USING    ow_mcvbak
+             ow_mcvbup
+             ow_mcvbapf
+             ow_mcvbkd
+    CHANGING ow_mcvbap  .
 
-  try.
-      call function 'SO_FOLDER_ROOT_ID_GET'
-        exporting
-          region    = folder_region
-        importing
-          folder_id = ls_fol_id
-        exceptions
-          others    = 1.
+ELSEIF ( OWE_ERLMENGE_L GE OWE_ERLMENGE_F AND
+*NOTE 1248406
+     ow_mcvbak-abdis IS INITIAL ) OR LS_CONTRACT_REVAL eq abap_true. "2006292
+*   darf nicht negativ werden
+    ow_mcvbap-olime = owe_erlmenge_l - owe_erlmenge_f.
+    ls_xmcvbfa-abges = ow_mcvbap-abges.
+    IF ow_mcvbap-olime GT 0 AND
+       ow_mcvbap-fkrel CA con_fkrel_lieferbez.
+*   Payment cards shall not be affected (use mcvbap-abges)
+      PERFORM ABSICHERUNGSFORM_LESEN(SAPLVKMP)
+              USING ow_mcvbap-abfor
+              CHANGING ls_t691k.
+      IF ls_t691k-abstp NE '3'.
+*   ABGES for quantity OLIME must be determined from the deliveries
+        READ TABLE xmcvbfa WITH KEY
+                   supkz = ow_mcvbap-supkz
+                   mandt = ow_mcvbap-mandt
+                   vbelv = ow_mcvbap-vbeln
+                   posnv = ow_mcvbap-posnr
+                   BINARY SEARCH.
+        IF sy-subrc EQ 0.
+          CLEAR: ls_xmcvbfa.
+          LOOP AT xmcvbfa FROM sy-tabix
+             WHERE VBTYP_N IN cl_sd_doc_category_util=>rg_delivery_outgoing( )
+                   AND stufe EQ 0.      "nur direkte Nachfolger "1708949
+            IF xmcvbfa-supkz NE ow_mcvbap-supkz OR
+               xmcvbfa-mandt NE ow_mcvbap-mandt OR
+               xmcvbfa-vbelv NE ow_mcvbap-vbeln OR
+               xmcvbfa-posnv NE ow_mcvbap-posnr.
+              EXIT.
+            ENDIF.
 
-      if sy-subrc eq 0.
-        l_folder_id-objtp = ls_fol_id-objtp.
-        l_folder_id-objyr = ls_fol_id-objyr.
-        l_folder_id-objno = ls_fol_id-objno.
+*start of n_1637462
+* only open deliveries should be taken in account
+              CALL FUNCTION 'SD_VBUP_SELECT'
+                EXPORTING
+                  i_document_number = xmcvbfa-vbeln
+                  i_item_number     = xmcvbfa-posnn
+                IMPORTING
+                  E_VBUP            = ls_vbup
+                EXCEPTIONS
+                  ITEM_NOT_FOUND    = 1                "1708949
+                  ERROR_MESSAGE     = 2.               "1708949
+              IF sy-subrc NE 0.                        "1708949
+                CLEAR ls_vbup.   "delivery already archived -> no update
+              ELSE.
+                IF ls_vbup-fksta = 'C'.
+                CONTINUE.
+                ENDIF.
+              ENDIF.
+*end of  n_1637462
 
-        l_object_id-objtp = doctp.
-        l_object_id-objyr = docyr.
-        l_object_id-objno = docno.
+            ls_xmcvbfa-abges = ls_xmcvbfa-abges
+                               + xmcvbfa-rfmng * xmcvbfa-abges.
+            ls_xmcvbfa-rfmng = ls_xmcvbfa-rfmng + xmcvbfa-rfmng.
+          ENDLOOP.
+          ls_xmcvbfa-abges = ls_xmcvbfa-abges / ls_xmcvbfa-rfmng.
+        ENDIF.
+      ENDIF.
+    ENDIF.
 
-        call function 'SO_OBJECT_READ'
-          exporting
-            folder_id                  = l_folder_id
-            object_id                  = l_object_id
-          tables
-            objcont                    = document_content
-          exceptions
-            active_user_not_exist      = 1
-            communication_failure      = 2
-            component_not_available    = 3
-            folder_not_exist           = 4
-            folder_no_authorization    = 5
-            object_not_exist           = 6
-            object_no_authorization    = 7
-            operation_no_authorization = 8
-            owner_not_exist            = 9
-            parameter_error            = 10
-            substitute_not_active      = 11
-            substitute_not_defined     = 12
-            system_failure             = 13
-            x_error                    = 14
-            others                     = 15.
-
-        if sy-subrc eq 0.
-          document_id-foltp = l_folder_id-objtp.
-          document_id-folyr = l_folder_id-objyr.
-          document_id-folno = l_folder_id-objno.
-          document_id-doctp = l_object_id-objtp.
-          document_id-docyr = l_object_id-objyr.
-          document_id-docno = l_object_id-objno.
-
-          l_document_id = document_id.
-
-          call function 'SO_DOCUMENT_READ_API1'
-            exporting
-              document_id                = l_document_id
-            importing
-              document_data              = l_document_data
-            tables
-              object_header              = lt_header
-              object_content             = lt_data
-              contents_hex               = lt_xdata
-            exceptions
-              document_id_not_exist      = 1
-              operation_no_authorization = 2
-              x_error                    = 3
-              others                     = 4.
-
-          if sy-subrc <> 0.
-            l_subrc = sy-subrc.
-            lv_message-type = 'E'.
-            if sy-msgid is not initial and sy-msgno is not initial.
-              lv_message-id = sy-msgid.
-              lv_message-number = sy-msgno.
-              lv_message-message_v1 = sy-msgv1.
-              lv_message-message_v2 = sy-msgv2.
-              lv_message-message_v3 = sy-msgv3.
-              lv_message-message_v4 = sy-msgv4.
-            elseif l_subrc = 2.
-              lv_message-id = 'SO'.
-              lv_message-number = '055'.
-              lv_message-message_v1 = l_document_id.
-            else.
-              lv_message-id = 'SO'.
-              lv_message-number = '006'.
-              lv_message-message_v1 = l_document_id.
-            endif.
-            append lv_message to rt_messages.
-            return.
-          endif.
-
-          lo_header = cl_bcs_objhead=>create( lt_header ).
-          lv_filename = lo_header->get_filename( ).
-          o_file_name = lv_filename.
-
-          file = o_file_name.
-          find first occurrence of regex '\.[^\.]+$' in file match offset dot_offset.
-          add 1 to dot_offset.
-          extension = file+dot_offset.
-
-          call function 'SDOK_MIMETYPE_GET'
-            exporting
-              extension = extension
-            importing
-              mimetype  = o_mimetype.
-
-          data conv_out type ref to cl_abap_conv_out_ce.
-
-          if lt_xdata is not initial.
-            data l_counter type i.
-            l_counter = l_document_data-doc_size.
-            loop at lt_xdata into ls_xdata.
-              if l_counter > 255.
-                concatenate l_xdata ls_xdata-line into l_xdata in byte mode.
-              else.
-                concatenate l_xdata ls_xdata-line+0(l_counter) into l_xdata in byte mode.
-              endif.
-              l_counter = l_counter - 255.
-            endloop.
-            o_content_hex = l_xdata.
-          else.
-            loop at lt_data into ls_data.
-              if doctp = 'URL' and strlen( ls_data-line ) >= 5.
-                concatenate l_data ls_data-line+5 into l_data.
-              endif.
-              if doctp = 'RAW'.
-                concatenate l_data ls_data-line into l_data.
-              endif.
-            endloop.
-
-            if doctp = 'RAW' or doctp = 'URL'.
-              o_content = l_data.
-              return.
-            endif.
-
-            conv_out = cl_abap_conv_out_ce=>create( encoding = 'UTF-8' ).
-            conv_out->convert( exporting data = l_data importing buffer = o_content_hex ).
-          endif.
-        endif.
+*   LEB (Lieferempfangsbestätigung) / POD (Proof of Delivery)
+*   Bei FKREL lieferbezogen ohne Nullmenge ist die Lieferung erledigt,
+*   wenn durch die LEB die Liefermenge auf Null geht - der Faktura
+*   status wird zurückgenommen (FKSTA = ' ') -> kein offener Lieferwert
+    IF ow_mcvbap-olime GT 0 AND
+       ow_mcvbap-fkrel CA con_fkrel_lfbz_keine_nullmg
+       AND ow_mcvbap-xchpf NE 'X'.        "n_2009454
+      READ TABLE xmcvbfa WITH KEY
+                 supkz = ow_mcvbap-supkz
+                 mandt = ow_mcvbap-mandt
+                 vbelv = ow_mcvbap-vbeln
+                 posnv = ow_mcvbap-posnr
+                 BINARY SEARCH.
+"Start note 1568351 (core note 1499960)
+* Teilmenge ist bereits fakturiert.
+      if not owe_erlmenge_f  is initial.
+       ow_mcvbap-olime = owe_erlmenge_l.
       endif.
-    catch cx_root into ex.
-      lv_message-id = sy-msgid.
-      lv_message-number = sy-msgno.
-      lv_message-message_v1 = sy-msgv1.
-      lv_message-message_v2 = sy-msgv2.
-      lv_message-message_v3 = sy-msgv3.
-      lv_message-message_v4 = sy-msgv4.
-      append lv_message to rt_messages.
-  endtry.
+"End note 1568351 (core note 1499960)
+      LOOP AT xmcvbfa FROM sy-tabix
+                      WHERE vbtyp_n IN cl_sd_doc_category_util=>rg_delivery_outgoing( )
+                        AND stufe EQ 0.      "nur direkte Nachfolger
+        CHECK xmcvbfa-supkz EQ ow_mcvbap-supkz AND
+              xmcvbfa-mandt EQ ow_mcvbap-mandt AND
+              xmcvbfa-vbelv EQ ow_mcvbap-vbeln AND
+              xmcvbfa-posnv EQ ow_mcvbap-posnr.
+        CALL FUNCTION 'SD_VBUP_SELECT'
+          EXPORTING
+            i_document_number       = xmcvbfa-vbeln
+            i_item_number           = xmcvbfa-posnn
+          IMPORTING
+            E_VBUP                  = ls_vbup
+          EXCEPTIONS
+            ITEM_NOT_FOUND          = 1          "1708949
+            ERROR_MESSAGE           = 2.         "1708949
+        IF sy-subrc NE 0.                        "1708949
+          CLEAR ls_vbup.   "delivery already archived -> no update
+        ELSE.
+"Start note 1568351 (core note 1499960)
+        IF ( ls_vbup-fksta = space and ls_vbup-pdsta = charc ) or  "1708949
+           ls_vbup-fksta = 'C'.
+"End note 1568351 (core note 1499960)
+*         rfmng ist in BasisME -> umrechnen in VRKME falls nötig
+          IF ow_mcvbap-vrkme NE ow_mcvbap-meins AND
+             ow_mcvbap-kzfme IS INITIAL.
+            PERFORM lagermenge_betrag
+                    USING    xmcvbfa-meins
+                             ow_mcvbap-vrkme
+                             ow_mcvbap-umvkn
+                             ow_mcvbap-umvkz
+                             xmcvbfa-rfmng
+                    CHANGING xmcvbfa-rfmng.
+          ENDIF.
+          ow_mcvbap-olime = ow_mcvbap-olime - xmcvbfa-rfmng.
+        ENDIF.
+        ENDIF.
+      ENDLOOP.
+    ENDIF.
 
-  endmethod.
-ENDCLASS.
+*   OW_MCVBAP-OLIKW = OW_MCVBAP-OLIME * OWE_CMPRE_FLT.
+    PERFORM cmpre_calculate(saplvkmp)
+      USING    ow_mcvbap-cmpre
+               ow_mcvbap-cmpre_flt
+               ow_mcvbap-olime
+               ls_xmcvbfa-abges
+      CHANGING ow_mcvbap-olikw
+               ow_mcvbap-olikwges
+               ow_mcvbap-olikwaa.
+
+*   Differential billing: OLIKW* have to be reduced by the  "v 1882256
+*   credit value contained in non-final billing documents.
+*   Non-final billing documents do not contribute to
+*   ERLMENGE_F. So up to here OLIKW* assumes the delivery
+*   is unbillled.
+    IF sv_bill_diff_active = abap_true.
+      PERFORM diff_cred_values_adjust TABLES   xmcvbfa
+                                      USING    ow_mcvbup
+                                               '1'  "For OLIKW* fields
+                                               ls_xmcvbfa-abges
+                                      CHANGING lv_cred_val_nf_done
+                                               lv_cred_val_nf
+                                               ow_mcvbap.
+    ENDIF.                                                  "^ 1882256
+
+  ENDIF.
+  ENDIF.
+*CSM 21-N0v-2008
+ENDENHANCEMENT.
+*$*$-End:   OFFENE_WERTE_ERM_03-----------------------------------------------------------------$*$*
+
+* offene Liefermenge, offener Lieferwert aus Auftrag
+* OLIMEAU wird nur dann ermittelt, wenn es auch im nachfolgenden
+* benötigt wird (Achtung: redundantes Coding)
+  IF ow_mcvbup-fksaa CA   'AB'         OR
+     ow_mcvbup-lfgsa CA   'AB'         OR
+     ( ow_mcvbup-fksaa CA ' ' AND
+       ow_mcvbup-lfgsa CA 'C'      ).
+    PERFORM auftragsmenge_ermitteln USING  ow_mcvbup-fksaa
+                                           ow_mcvbup-fksta
+                                           ow_mcvbap-fkrel
+                                           ow_mcvbap-lsmeng
+                                           ow_mcvbap-kwmeng
+                                           ow_mcvbap-zmeng
+                                           ow_mcvbapf-remng
+                                           ow_mcvbapf-wemng
+                                  CHANGING ow_mcvbap-olimeau.
+  ENDIF.
+
+* Wenn Strecke und gesperrt, Zurücknahme des off. Lieferwertes
+* Ermitteln, ob Strecke im Spiel
+* A C H T U N G: es kann sein, daß XMCVBEP nicht gefüllt ist, da
+*                SUHIE = Position
+  IF ow_mcvbap-fkrel     CA 'B'     AND
+     OW_MCVBUP-FKSAA     CA 'AB'    AND
+     ow_mcvbup-lfgsa     EQ space   AND
+     ow_mcvbup-gbsta     CA 'AB'    AND
+     OW_MCVBAP-ABGRU     IS INITIAL.
+    READ TABLE xmcvbep WITH KEY supkz = ow_mcvbap-supkz
+                                mandt = ow_mcvbap-mandt
+                                vbeln = ow_mcvbap-vbeln
+                                posnr = ow_mcvbap-posnr BINARY SEARCH.
+    IF sy-subrc         EQ 0 AND
+      NOT xmcvbep-bsart IS INITIAL.
+    ELSE.
+      CLEAR xmcvbep-bsart.
+    ENDIF.
+  ENDIF.
+*
+  IF ( ow_mcvbap-fkrel   EQ charf      OR
+       ( ow_mcvbap-fkrel CA 'B'  AND
+         NOT xmcvbep-bsart IS INITIAL ) ) AND
+     OW_MCVBUP-FKSAA     CA 'AB'          AND
+     ow_mcvbup-lfgsa     EQ space         AND
+     ow_mcvbup-gbsta     CA 'AB'          AND
+     ow_mcvbap-abgru     IS INITIAL       AND
+     ow_mcvbap-kwmeng    GT ow_mcvbap-kbmeng.
+    MOVE charx TO flg_third_party.
+    IF xmcvbuk-cmgst CA 'B'.
+      MOVE-CORRESPONDING xmcvbak TO vbak.
+      MOVE-CORRESPONDING xmcvbuk TO vbuk.
+      CALL FUNCTION 'SD_ORDER_SUBSEQUENT_ALLOWED'
+        EXPORTING
+          bvbak                   = vbak
+          bvbuk                   = vbuk
+          fofun                   = '02'         "Banf
+        EXCEPTIONS
+          error                   = 01
+          warning                 = 02
+          error_but_do_not_delete = 03.
+      IF     sy-subrc      NE 0              AND
+           ( xmcvbak-supkz CA con_supkz_alte OR
+             control-modus NE con_modus_sim  OR
+             control-srout EQ 'DBL_' ).
+*       nicht löschen wenn schon bestellt (Banf nicht mehr löschbar)
+        IF OW_MCVBAP-KBMENG EQ 0.
+          CLEAR OW_MCVBAP-OLIMEAU.
+        ENDIF.
+      ENDIF.
+    ENDIF.
+  ENDIF.
+
+* Wenn Fakturierung auftragsbezogen, Rücknahme des off. Lieferwertes
+ENHANCEMENT-SECTION     OFFENE_WERTE_ERM_01 SPOTS ES_SAPLMCS1.
+* Strecke ausschließen, da oben schon behandelt
+  IF ( ( OW_MCVBAP-FKREL     CA 'B'    AND
+         FLG_THIRD_PARTY IS INITIAL )  OR
+       OW_MCVBAP-FKREL     CA  'I'    OR
+*      Begin ENHO AD_BOS_01_SAPLMCS1, IS-ADEC-BOQ, Bill of Service
+*      OW_MCVBAP-FKREL     CA  'I'   ) AND
+       OW_MCVBAP-FKREL     CA  'I'    OR
+       OW_MCVBAP-FKREL     CA CON_FKREL_DP  ) AND " IS-4.6, payment
+*      End ENHO AD_BOS_01_SAPLMCS1, IS-ADEC-BOQ,
+     ow_mcvbup-lfgsa     CA 'A '.
+    IF xmcvbuk-cmgst CA 'B'.
+      MOVE-CORRESPONDING xmcvbak TO vbak.
+      MOVE-CORRESPONDING xmcvbuk TO vbuk.
+      CALL FUNCTION 'SD_ORDER_SUBSEQUENT_ALLOWED'
+        EXPORTING
+          bvbak                   = vbak
+          bvbuk                   = vbuk
+          fofun                   = '01'         "bestätigte Menge
+        EXCEPTIONS
+          error                   = 01
+          warning                 = 02
+          error_but_do_not_delete = 03.
+      IF     sy-subrc      NE 0              AND
+           ( xmcvbak-supkz CA con_supkz_alte OR
+             control-modus NE con_modus_sim  OR
+             control-srout EQ 'DBL_' ).
+        CLEAR ow_mcvbap-olimeau.
+        MOVE charx TO flg_reset_olimeau.
+      ENDIF.
+    ENDIF.
+  ENDIF.
+END-ENHANCEMENT-SECTION.
+
+* offener Lieferwert nur dann, wenn auch fakturiert wird
+  IF ow_mcvbup-fksaa CA 'AB' OR
+     ow_mcvbup-lfgsa CA 'AB'.
+*   wenn auftragsbezogen fakturiert wird oder noch nicht endausgeliefert
+    IF ow_mcvbap-olimeau GE owe_erlmenge_f.
+*     darf nicht negativ werden
+      ow_mcvbap-olimeau = ow_mcvbap-olimeau - owe_erlmenge_f.
+*     OW_MCVBAP-OLIKWAU = OW_MCVBAP-OLIMEAU * OWE_CMPRE_FLT.
+      PERFORM cmpre_calculate(saplvkmp)
+        USING    ow_mcvbap-cmpre
+                 ow_mcvbap-cmpre_flt
+                 ow_mcvbap-olimeau
+                 ow_mcvbap-abges
+*                OW_MCVBAPF-ABGES
+        CHANGING ow_mcvbap-olikwau
+                 ow_mcvbap-olikwauges
+                 ow_mcvbap-olikwauaa.
+*     Differential billing: Analogous to OLIKW* above,      "v 1882256
+*     OLIKWAU* are reduced by the credit value contained
+*     within non-final billing documents.
+      IF sv_bill_diff_active = abap_true.
+*       LV_ABGES introduced to avoid OW_MCVBAP USING and CHANGING.
+        lv_abges = ow_mcvbap-abges.
+        PERFORM diff_cred_values_adjust TABLES   xmcvbfa
+                                        USING    ow_mcvbup
+                                                 '2'  "For OLIKWAU* fields
+                                                 lv_abges
+                                        CHANGING lv_cred_val_nf_done
+                                                 lv_cred_val_nf
+                                                 ow_mcvbap.
+      ENDIF.                                                "^ 1882256
+
+* Sonderbehandlung bei Nachberechnung:
+      IF NOT ow_mcvbak-augru IS INITIAL.
+        SELECT SINGLE * FROM tvau INTO wa_tvau
+                       WHERE augru = ow_mcvbak-augru.
+        IF sy-subrc EQ 0 AND wa_tvau-vauna EQ 1.
+          CLEAR OW_MCVBAP-OLIKWAU.
+          CLEAR OW_MCVBAP-OLIKWAUGES.
+          CLEAR OW_MCVBAP-OLIKWAUAA.
+        ENDIF.
+      ENDIF.
+    ENDIF.
+  ENDIF.
+  IF ow_mcvbup-fksaa CA ' ' AND
+     ow_mcvbup-lfgsa CA 'C'.
+*   wenn lieferbezogen fakturiert und endausgeliefert
+    IF owe_erlmenge_l GE owe_erlmenge_f.
+*     darf nicht negativ werden
+      ow_mcvbap-olimeau = owe_erlmenge_l - owe_erlmenge_f.
+      ow_mcvbap-olikwau = ow_mcvbap-olimeau * owe_cmpre_flt.
+      PERFORM cmpre_calculate(saplvkmp)
+        USING    ow_mcvbap-cmpre
+                 ow_mcvbap-cmpre_flt
+                 ow_mcvbap-olimeau
+                 ow_mcvbap-abges
+*                OW_MCVBAPF-ABGES
+        CHANGING ow_mcvbap-olikwau
+                 ow_mcvbap-olikwauges
+                 ow_mcvbap-olikwauaa.
+*     Differential billing: Analogous to OLIKW* above,      "v 1882256
+*     OLIKWAU* are reduced by the credit value contained
+*     within non-final billing documents.
+      IF sv_bill_diff_active = abap_true.
+*       LV_ABGES introduced to avoid OW_MCVBAP USING and CHANGING.
+        lv_abges = ow_mcvbap-abges.
+        PERFORM diff_cred_values_adjust TABLES   xmcvbfa
+                                        USING    ow_mcvbup
+                                                 '2'  "For OLIKWAU* fields
+                                                 lv_abges
+                                        CHANGING lv_cred_val_nf_done
+                                                 lv_cred_val_nf
+                                                 ow_mcvbap.
+      ENDIF.                                                "^ 1882256
+    ENDIF.
+  ENDIF.
+
+
+* Periodische oder Teilfakturierung
+ENHANCEMENT-SECTION     OFFENE_WERTE_ERM_02 SPOTS ES_SAPLMCS1.
+"{ Begin ENHO AD_BOS_01_SAPLMCS1 IS-EC-BOS ECO_BOS }
+* IBU A&D/E&C, bill of service (BOS) IS-ADEC-BOQ
+* IF ow_mcvbap-fkrel   CA 'I'     AND
+  IF ( OW_MCVBAP-FKREL   CA 'I'     OR
+       OW_MCVBAP-FKREL   CA CON_FKREL_DP ) AND
+"{ End ENHO AD_BOS_01_SAPLMCS1 IS-EC-BOS ECO_BOS }
+     OW_MCVBUP-FKSAA   CA 'AB'    AND
+     flg_reset_olimeau IS INITIAL.
+    PERFORM cmpre_determine(saplvkmp)
+      USING ow_mcvbap-cmpre
+            ow_mcvbap-cmpre_flt
+      CHANGING owe_cmpre_flt.
+    ow_mcvbap-olikwau = owe_cmpre_flt.
+    ow_mcvbap-olinwau = ow_mcvbap-netwr.
+*   bei Teilfaktura wird, wenn ein Termin vorhanden ist, der Kreditwert
+*   aus der Summer der Termine ermittelt.
+    READ TABLE ow_mcfplt WITH KEY supkz = ow_mcvbkd-supkz
+                                  mandt = ow_mcvbkd-mandt
+                                  fplnr = ow_mcvbkd-fplnr
+                                  BINARY SEARCH
+                                  TRANSPORTING NO FIELDS.
+    LOOP AT ow_mcfplt FROM sy-tabix.
+      IF ow_mcfplt-supkz <> ow_mcvbkd-supkz OR
+         ow_mcfplt-mandt <> ow_mcvbkd-mandt OR
+         ow_mcfplt-fplnr <> ow_mcvbkd-fplnr.
+        EXIT.
+      ENDIF.
+
+      IF ow_mcfplt-fareg NA con_fareg_periodisch.
+        ADD 1 TO da_index.
+        IF da_index EQ 1.
+          CLEAR ow_mcvbap-olikwau.
+          CLEAR ow_mcvbap-olinwau.
+        ENDIF.
+        IF ow_mcfplt-fareg NA con_fareg_anzahlungen.
+          IF NOT ow_mcfplt-fproz IS INITIAL.
+            ow_mcvbap-olikwau = ow_mcvbap-olikwau +
+              ( owe_cmpre_flt   *  ( ow_mcfplt-fproz / 100 ) ).
+            ow_mcvbap-olinwau = ow_mcvbap-olinwau +
+              ( ow_mcvbap-netwr *  ( ow_mcfplt-fproz / 100 ) ).
+          ELSE.
+            IF ow_mcvbap-netwr IS INITIAL.
+              ow_mcvbap-olikwau = ow_mcvbap-olikwau +
+             ( ow_mcvbap-cmpre *  ow_mcfplt-fakwr ).
+              ow_mcvbap-olinwau = ow_mcvbap-olinwau + ow_mcfplt-fakwr.
+            ELSE.
+              ow_mcvbap-olikwau = ow_mcvbap-olikwau +
+             ( owe_cmpre_flt   *
+                    ( ow_mcfplt-fakwr / ow_mcvbap-netwr ) ).
+              ow_mcvbap-olinwau = ow_mcvbap-olinwau + ow_mcfplt-fakwr.
+            ENDIF.
+          ENDIF.
+        ENDIF.
+      ENDIF.
+*
+      IF ow_mcfplt-fksaf EQ 'C'.
+        IF ow_mcfplt-fareg CA con_fareg_periodisch.
+          PERFORM cmpre_determine(saplvkmp)
+            USING ow_mcfplt-cmpre
+                  ow_mcfplt-cmpre_flt
+            CHANGING ow_mcfplt-cmpre_flt.
+          ow_mcvbap-olikwau = ow_mcvbap-olikwau - ow_mcfplt-cmpre_flt.
+          ow_mcvbap-olinwau = ow_mcvbap-olinwau - ow_mcfplt-fakwr.
+        ELSE.
+          IF ow_mcfplt-fareg NA con_fareg_anzahlungen.
+            IF NOT ow_mcfplt-fproz IS INITIAL.
+              ow_mcvbap-olikwau = ow_mcvbap-olikwau -
+                ( owe_cmpre_flt   *  ( ow_mcfplt-fproz / 100 ) ).
+              ow_mcvbap-olinwau = ow_mcvbap-olinwau -
+                ( ow_mcvbap-netwr *  ( ow_mcfplt-fproz / 100 ) ).
+            ELSE.
+              IF ow_mcvbap-netwr IS INITIAL.
+                ow_mcvbap-olikwau = ow_mcvbap-olikwau -
+               ( ow_mcvbap-cmpre *  ow_mcfplt-fakwr ).
+                ow_mcvbap-olinwau = ow_mcvbap-olinwau - ow_mcfplt-fakwr.
+              ELSE.
+                ow_mcvbap-olikwau = ow_mcvbap-olikwau -
+               ( owe_cmpre_flt   *
+                     ( ow_mcfplt-fakwr / ow_mcvbap-netwr ) ).
+                ow_mcvbap-olinwau = ow_mcvbap-olinwau - ow_mcfplt-fakwr.
+              ENDIF.
+            ENDIF.
+          ENDIF.
+        ENDIF.
+      ENDIF.
+    ENDLOOP.
+
+*   offene Liefermenge, offener Lieferwert aus Auftrag
+    PERFORM auftragsmenge_ermitteln USING    ow_mcvbup-fksaa
+                                             ow_mcvbup-fksta
+                                             ow_mcvbap-fkrel
+                                             ow_mcvbap-lsmeng
+                                             ow_mcvbap-kwmeng
+                                             ow_mcvbap-zmeng
+                                             ow_mcvbapf-remng
+                                             ow_mcvbapf-wemng
+                                    CHANGING ow_mcvbap-olimeau.
+*   OW_MCVBAP-OLIKWAU = OW_MCVBAP-OLIMEAU * OW_MCVBAP-OLIKWAU.
+    owe_cmpre_flt = ow_mcvbap-olikwau.
+    PERFORM cmpre_calculate(saplvkmp)
+      USING    owe_cmpre_flt
+               owe_cmpre_flt
+               ow_mcvbap-olimeau
+               ow_mcvbap-abges
+*              OW_MCVBAPF-ABGES
+      CHANGING ow_mcvbap-olikwau
+               ow_mcvbap-olikwauges
+               ow_mcvbap-olikwauaa.
+
+* Sonderbehandlung bei Nachberechnung:
+    IF NOT ow_mcvbak-augru IS INITIAL.
+      SELECT SINGLE * FROM tvau INTO wa_tvau
+                      WHERE augru = ow_mcvbak-augru.
+      IF sy-subrc EQ 0 AND wa_tvau-vauna EQ 1.
+        CLEAR OW_MCVBAP-OLIKWAU.
+        CLEAR OW_MCVBAP-OLIKWAUGES.
+        CLEAR OW_MCVBAP-OLIKWAUAA.
+      ENDIF.
+    ENDIF.
+  ENDIF.
+END-ENHANCEMENT-SECTION.
+
+  erlmenge_f = owe_erlmenge_f.
+ENDFORM.                    "OFFENE_WERTE_ERM
+
+*---------------------------------------------------------------------*
+*       FORM PROSA_setzen                                             *
+*---------------------------------------------------------------------*
+*       ........                                                      *
+*---------------------------------------------------------------------*
+*  -->  us_xvbap                                                      *
+*  -->  ch_prosa                                                      *
+*---------------------------------------------------------------------*
+FORM prosa_setzen USING    us_xvbap STRUCTURE vbapvb
+                  CHANGING ch_prosa TYPE prosa.
+
+* bei Produktselektion mit Ergebnis = B (Substitutionsgrund) muß
+* VBAP-PROSA umgeschossen werden
+  CHECK ch_prosa EQ charb.
+  CHECK NOT us_xvbap-sugrd IS INITIAL.
+  IF us_xvbap-sugrd NE tvsu-sugrd.
+    SELECT SINGLE * FROM tvsu WHERE sugrd EQ us_xvbap-sugrd.
+  ENDIF.
+  IF tvsu-suerg EQ charb.
+    CLEAR ch_prosa.
+  ENDIF.
+
+ENDFORM.                    "PROSA_SETZEN
+
+*---------------------------------------------------------------------*
+*       FORM CHECK_PROSA                                              *
+*---------------------------------------------------------------------*
+*       ........                                                      *
+*---------------------------------------------------------------------*
+*  -->  IV_SUGRD                                                      *
+*  -->  CV_PROSA                                                      *
+*---------------------------------------------------------------------*
+form check_prosa using    iv_sugrd type sugrd
+                 changing cv_prosa type prosa.
+
+* If product selection results as B (reason for substitution), we
+* have to clear VBAP-PROSA
+  if cv_prosa ne charb   or
+     iv_sugrd IS INITIAL.
+    return.
+  endif.
+  if iv_sugrd ne tvsu-sugrd.
+    select single *
+           from tvsu
+           where sugrd eq iv_sugrd.
+  endif.
+  if tvsu-suerg eq charb.
+    clear cv_prosa.
+  endif.
+
+endform.                    "CHECK_PROSA
+
+*---------------------------------------------------------------------*
+*       FORM UPDATE_CALL                                              *
+*---------------------------------------------------------------------*
+*       ........                                                      *
+*---------------------------------------------------------------------*
+FORM update_call USING uc_suhie TYPE suhie
+                       uc_zeitp TYPE dzeitp
+                       uc_stafo TYPE stafo
+                       uc_tmc2f TYPE c.
+
+  LOCAL: xmcvbak-supkz.
+* Broadcasting
+  DATA: bc_active.
+*
+  control-zeitp = uc_zeitp.
+  uc_tmc2f = false.
+  PERFORM retoure_erm
+    USING    xmcvbuk-vbtyp uc_suhie xmcvbap-shkzg
+    CHANGING rc.
+  IF rc EQ true.                       "Retoure etc.
+    IF xmcvbak-supkz EQ con_supkz_alt.
+      xmcvbak-supkz = con_supkz_alt_pos.
+    ELSE.
+      xmcvbak-supkz = con_supkz_neu_neg.
+    ENDIF.
+  ENDIF.
+
+* Füllen BW-Extraktionsstrukturen
+  IF flg_bw EQ true           AND
+     flg_verbuchung EQ con_d  AND
+     UC_SUHIE CA 'ANOPT'      AND
+     control-modus CA con_modus_bw.
+    DATA: xs_active.
+    SET EXTENDED CHECK OFF.            " Für Syntax-Check ohne Plug-In
+    CALL FUNCTION 'MCEX_FILL_XS_11'
+      EXPORTING
+        suhie                = uc_suhie
+        XMCKOMV              = XMCKOMV
+        xmcvbak              = xmcvbak
+        xmcvbap              = xmcvbap
+        xmcvbapf             = xmcvbapf
+        xmcvbep              = xmcvbep
+        xmcvbkd              = xmcvbkd
+        xmcvbuk              = xmcvbuk
+        xmcvbup              = xmcvbup
+        XMCFPLT              = XMCFPLT
+        INTERFACE_VERSION_11 = CON_BW_EX_11_INTERFACE_VERSION
+      IMPORTING
+        xs_active            = xs_active.
+    SET EXTENDED CHECK ON.
+    IF xs_active = true.
+      uc_tmc2f = true.
+    ENDIF.
+  ENDIF.                                                    " BW
+* Fill Broadcast Container
+  IF cl_ops_switch_check=>sd_sfws_gb_01( ) = abap_true AND
+     flg_gb EQ true           AND
+     flg_verbuchung EQ con_d  AND
+     uc_suhie CA 'ANOPT'      AND
+     control-modus CA con_modus_gb.
+    CALL FUNCTION 'MCV_BROADCAST_COLLECT_SLS'
+      EXPORTING
+        suhie                = uc_suhie
+        xmckomv              = xmckomv
+        xmcvbak              = xmcvbak
+        xmcvbap              = xmcvbap
+        xmcvbapf             = xmcvbapf
+        xmcvbep              = xmcvbep
+        xmcvbfa              = xmcvbfa[]
+        xmcvbkd              = xmcvbkd
+        xmcvbpa              = xmcvbpa[]
+        xmcvbuk              = xmcvbuk
+        xmcvbup              = xmcvbup
+      IMPORTING
+        bc_active            = bc_active.
+    IF bc_active = true.
+      uc_tmc2f = true.
+    ENDIF.
+  ENDIF.                                                    " GB
+*
+  IF uc_suhie EQ con_suhie_vbak.
+    CALL FUNCTION 'MCV_STATISTICS_SYSTEMSEQUENCES'
+      EXPORTING
+        zeitp  = uc_zeitp
+        mcvbak = xmcvbak
+      TABLES
+        stafos = int_stafos.
+    MOVE uc_stafo TO int_stafos-stafo.
+    APPEND int_stafos. SORT int_stafos.
+  ELSEIF uc_suhie EQ con_suhie_vbap.
+    CALL FUNCTION 'MCV_STATISTICS_SYSTEMSEQUENCES'
+      EXPORTING
+        zeitp  = uc_zeitp
+        mcvbak = xmcvbak
+        mcvbap = xmcvbap
+      TABLES
+        stafos = int_stafos.
+    MOVE uc_stafo TO int_stafos-stafo.
+    APPEND int_stafos. SORT int_stafos.
+  ENDIF.
+  READ TABLE int_stafos INDEX 1.
+*
+  IF control-modus EQ con_modus_norm
+  AND control-logging NE true.
+*   ermittle alle Fortschreibungsregeln
+    MOVE xmcvbak-mandt       TO tmc2f_key-mandt.
+    MOVE uc_zeitp            TO tmc2f_key-zeitp.
+    MOVE uc_suhie            TO tmc2f_key-suhie.
+    MOVE int_stafos-stafo    TO tmc2f_key-stafo.
+    MOVE flg_verbuchung TO tmc2f_key-kbtch.
+    READ TABLE int_tmc2f WITH KEY mandt = tmc2f_key-mandt
+                                  zeitp = tmc2f_key-zeitp
+                                  suhie = tmc2f_key-suhie
+                                  stafo = tmc2f_key-stafo
+                                  kbtch = tmc2f_key-kbtch
+                         BINARY SEARCH.
+    IF sy-subrc LE 4.
+      LOOP AT int_tmc2f FROM sy-tabix.
+        CHECK int_tmc2f-mandt EQ tmc2f_key-mandt
+        AND   int_tmc2f-zeitp EQ tmc2f_key-zeitp
+        AND   int_tmc2f-suhie EQ tmc2f_key-suhie
+        AND   int_tmc2f-kbtch EQ tmc2f_key-kbtch.
+        CLEAR                   tmcb-mandt.
+        MOVE int_tmc2f-stafo TO tmcb-stafo.
+        READ TABLE int_stafos WITH KEY mandt = tmcb-mandt
+                                       stafo = tmcb-stafo
+                              BINARY SEARCH.
+        CHECK sy-subrc EQ 0.
+        uc_tmc2f = true.
+        prog_tab-fprog = int_tmc2f-fprog.
+
+        READ TABLE prog_tab WITH KEY fprog = prog_tab-fprog.
+        IF sy-subrc NE 0.
+*    Verknüpfung der common parts
+          CALL FUNCTION 'MCS_LOAD_UPDATE_RULES_LIS'
+            EXPORTING
+              progname = int_tmc2f-fprog.
+          APPEND prog_tab-fprog TO prog_tab.
+        ENDIF.
+
+*       rufe Update_Routine in jeweiligem Modulpool auf
+        PERFORM (int_tmc2f-frout) IN PROGRAM (prog_tab-fprog)
+          TABLES mclogging
+          USING  xmckomv
+                 xmcvbak
+                 xmcvbap
+                 xmcvbep
+                 xmcvbkd
+                 xmcvbpa
+                 xmcvbuk
+                 xmcvbup
+                 xmcvbapf
+                 xmcfplt
+                 control.
+      ENDLOOP.
+    ENDIF.
+  ELSE.
+    MOVE xmcvbak-mandt      TO tmc2f2_key-mandt.
+    MOVE uc_zeitp           TO tmc2f2_key-zeitp.
+    MOVE uc_suhie           TO tmc2f2_key-suhie.
+    MOVE int_stafos-stafo   TO tmc2f2_key-stafo.
+    READ TABLE int_tmc2f WITH KEY mandt = tmc2f2_key-mandt
+                                  zeitp = tmc2f2_key-zeitp
+                                  suhie = tmc2f2_key-suhie
+                                  stafo = tmc2f2_key-stafo
+                         BINARY SEARCH.
+    IF sy-subrc LE 4.
+      LOOP AT int_tmc2f FROM sy-tabix.
+        CHECK int_tmc2f-mandt EQ tmc2f2_key-mandt
+        AND   int_tmc2f-zeitp EQ tmc2f2_key-zeitp
+        AND   int_tmc2f-suhie EQ tmc2f2_key-suhie.
+        CLEAR                   tmcb-mandt.
+        MOVE int_tmc2f-stafo TO tmcb-stafo.
+        READ TABLE int_stafos WITH KEY mandt = tmcb-mandt
+                                       stafo = tmcb-stafo
+                              BINARY SEARCH.
+        CHECK sy-subrc EQ 0.
+        uc_tmc2f = true.
+        prog_tab-fprog = int_tmc2f-fprog.
+        IF control-logging EQ true.
+          CLEAR: mclogging-data, mclogging-key, mclogging-date,
+                 mclogging-unit.
+          MOVE int_stafos-stafo     TO mclogging-stafo.
+          mclogging-gstru  = int_tmc2f-fprog+4(4).
+          mclogging-frout  = int_tmc2f-frout.
+          mclogging-supkz  = xmcvbak-supkz.
+          mclogging-reason = con_reason_prep.
+          APPEND mclogging.
+        ENDIF.
+
+        READ TABLE prog_tab WITH KEY fprog = prog_tab-fprog.
+        IF sy-subrc NE 0.
+*    Verknüpfung der common parts
+          CALL FUNCTION 'MCS_LOAD_UPDATE_RULES_LIS'
+            EXPORTING
+              progname = int_tmc2f-fprog.
+          IF control-logging NE true.
+            APPEND prog_tab-fprog TO prog_tab.
+          ENDIF.
+        ENDIF.
+
+*       rufe Update_Routine in jeweiligem Modulpool auf
+        PERFORM (int_tmc2f-frout) IN PROGRAM (prog_tab-fprog)
+          TABLES mclogging
+          USING  xmckomv
+                 xmcvbak
+                 xmcvbap
+                 xmcvbep
+                 xmcvbkd
+                 xmcvbpa
+                 xmcvbuk
+                 xmcvbup
+                 xmcvbapf
+                 xmcfplt
+                 control.
+      ENDLOOP.
+    ENDIF.
+  ENDIF.
+ENDFORM.                    "UPDATE_CALL
+
+
+*---------------------------------------------------------------------*
+*       FORM UPDATE_FROM_INT                                          *
+*---------------------------------------------------------------------*
+*       ........                                                      *
+*---------------------------------------------------------------------*
+FORM update_from_int.
+
+* START NOTE 376750
+* select is performance uncritical as tmc2p is completely buffered
+  LOOP AT prog_tab.
+    SELECT SINGLE mcinf FROM tmc2p INTO prog_tab-mcinf
+                        WHERE fprog = prog_tab-fprog.
+    MODIFY prog_tab.
+  ENDLOOP.
+*
+  SORT prog_tab BY mcinf fprog.
+* END NOTE 376750
+
+* zuerst den Standard-Update der Info-Strukturen
+  LOOP AT prog_tab.
+    CASE control-modus.
+      WHEN con_modus_norm.
+        PERFORM (mcinf_update_form) IN PROGRAM (prog_tab-fprog)
+          USING control.
+      WHEN con_modus_new.
+        PERFORM (mcinf_update_form) IN PROGRAM (prog_tab-fprog)
+          USING control.
+      WHEN con_modus_sim.
+        PERFORM (simulation) IN PROGRAM (prog_tab-fprog)
+          USING control.
+      WHEN con_modus_sim_new.
+        PERFORM (simulation) IN PROGRAM (prog_tab-fprog)
+          USING control.
+    ENDCASE.
+  ENDLOOP.
+
+* evtl. Update für event-driven Early Warning System
+  IF control-modus = con_modus_norm.
+    LOOP AT prog_tab.
+      CALL FUNCTION 'MC_EXCEPTION_EVENT'
+        EXPORTING
+          fprog            = prog_tab-fprog
+        IMPORTING
+          vrsia            = control-vrsio
+        EXCEPTIONS
+          no_event_analyse = 01.
+      IF sy-subrc = 0.
+        PERFORM (mcinf_update_form) IN PROGRAM (prog_tab-fprog)
+          USING control.
+      ENDIF.
+    ENDLOOP.
+  ENDIF.
+
+* refresh auf die interne Tabellen der Info-Strukturen
+  LOOP AT prog_tab.
+    PERFORM inttab_refresh IN PROGRAM (prog_tab-fprog)
+      USING control.
+  ENDLOOP.
+
+  CLEAR prog_tab. REFRESH prog_tab.
+ENDFORM.                    "UPDATE_FROM_INT
+
+
+*---------------------------------------------------------------------*
+*       FORM VBPAP_CALL                                               *
+*---------------------------------------------------------------------*
+*       ........                                                      *
+*---------------------------------------------------------------------*
+*  -->  VC_SUHIE                                                      *
+*---------------------------------------------------------------------*
+FORM vbpap_call USING vc_suhie TYPE suhie.
+  flg_tmc2f_vbpa = true.
+* Kopfpartner
+  MOVE xmcvbap-supkz TO xmcvbpa_key-supkz.
+  MOVE xmcvbap-mandt TO xmcvbpa_key-mandt.
+  MOVE xmcvbap-vbeln TO xmcvbpa_key-vbeln.
+  MOVE 0             TO xmcvbpa_key-posnr.
+  READ TABLE xmcvbpa WITH KEY supkz = xmcvbpa_key-supkz
+                              mandt = xmcvbpa_key-mandt
+                              vbeln = xmcvbpa_key-vbeln
+                              posnr = xmcvbpa_key-posnr
+                              BINARY SEARCH.
+  IF sy-subrc EQ 0.
+    LOOP AT xmcvbpa FROM sy-tabix.
+      IF flg_tmc2f_vbpa EQ false. EXIT. ENDIF.
+      IF xmcvbpa-supkz NE xmcvbpa_key-supkz
+      OR xmcvbpa-mandt NE xmcvbpa_key-mandt
+      OR xmcvbpa-vbeln NE xmcvbpa_key-vbeln
+      OR xmcvbpa-posnr NE xmcvbpa_key-posnr.
+        EXIT.
+      ENDIF.
+*     gibt es dazu einen Positionspartner ?
+      MOVE xmcvbpa-supkz TO xmcvbpa2_key-supkz.
+      MOVE xmcvbpa-mandt TO xmcvbpa2_key-mandt.
+      MOVE xmcvbpa-vbeln TO xmcvbpa2_key-vbeln.
+      MOVE xmcvbap-posnr TO xmcvbpa2_key-posnr.
+      MOVE xmcvbpa-parvw TO xmcvbpa2_key-parvw.
+      READ TABLE xmcvbpa WITH KEY supkz = xmcvbpa2_key-supkz
+                                  mandt = xmcvbpa2_key-mandt
+                                  vbeln = xmcvbpa2_key-vbeln
+                                  posnr = xmcvbpa2_key-posnr
+                                  parvw = xmcvbpa2_key-parvw
+                                  BINARY SEARCH.
+      IF sy-subrc NE 0.
+        IF control-logging EQ true.
+          MOVE xmcvbpa-parvw TO mclogging-parvw.
+        ENDIF.
+        PERFORM update_call
+          USING vc_suhie zeitp xmcvbap-stafo flg_tmc2f_vbpa.
+      ENDIF.
+    ENDLOOP.
+  ENDIF.
+* Positionspartner
+  CHECK flg_tmc2f_vbpa EQ true.
+  MOVE xmcvbap-supkz TO xmcvbpa_key-supkz.
+  MOVE xmcvbap-mandt TO xmcvbpa_key-mandt.
+  MOVE xmcvbap-vbeln TO xmcvbpa_key-vbeln.
+  MOVE xmcvbap-posnr TO xmcvbpa_key-posnr.
+  READ TABLE xmcvbpa WITH KEY supkz = xmcvbpa_key-supkz
+                              mandt = xmcvbpa_key-mandt
+                              vbeln = xmcvbpa_key-vbeln
+                              posnr = xmcvbpa_key-posnr BINARY SEARCH.
+  IF sy-subrc EQ 0.
+    LOOP AT xmcvbpa FROM sy-tabix.
+      IF flg_tmc2f_vbpa EQ false. EXIT. ENDIF.
+      IF xmcvbpa-supkz NE xmcvbpa_key-supkz
+      OR xmcvbpa-mandt NE xmcvbpa_key-mandt
+      OR xmcvbpa-vbeln NE xmcvbpa_key-vbeln
+      OR xmcvbpa-posnr NE xmcvbpa_key-posnr.
+        EXIT.
+      ENDIF.
+      IF control-logging EQ true.
+        MOVE xmcvbpa-parvw TO mclogging-parvw.
+      ENDIF.
+      PERFORM update_call
+        USING vc_suhie zeitp xmcvbap-stafo flg_tmc2f_vbpa.
+    ENDLOOP.
+  ENDIF.
+ENDFORM.                    "VBPAP_CALL
+
+*---------------------------------------------------------------------*
+*       FORM ZEITPUNKT_AUFTRAG_ERMITTELN                              *
+*---------------------------------------------------------------------*
+*       ........                                                      *
+*---------------------------------------------------------------------*
+*  -->  US_TRVOG                                                      *
+*  -->  CH_ZEITP                                                      *
+*---------------------------------------------------------------------*
+FORM zeitpunkt_auftrag_ermitteln USING us_trvog TYPE trvog
+                                       us_vbak  STRUCTURE vbak
+                                       us_vbuk  STRUCTURE vbukvb
+                                 CHANGING ch_zeitp TYPE dzeitp.
+  CASE us_trvog.
+    WHEN '0'.
+      ch_zeitp = con_zeitp_auftrag.
+    WHEN '1'.
+      ch_zeitp = con_zeitp_anfrage.
+    WHEN '2'.
+      ch_zeitp = con_zeitp_angebot.
+    WHEN '3'.
+      ch_zeitp = con_zeitp_auftrag.
+    WHEN '4'.
+      ch_zeitp = con_zeitp_angebot.
+      CALL FUNCTION 'SD_DETERMINE_CONTRACT_TYPE'
+        EXPORTING
+          i_vbak_vbeln      = us_vbak-vbeln
+          i_vbuk            = us_vbuk
+          i_vbak            = us_vbak
+        EXCEPTIONS
+          service_contract  = 1
+          quantity_contract = 2.
+*               NO_CONTRACT        = 3
+*               DOCUMENT_NOT_FOUND = 4
+*               OTHERS             = 5.
+      IF sy-subrc EQ 1.
+        ch_zeitp = con_zeitp_auftrag.
+      ENDIF.
+  ENDCASE.
+ENDFORM.                    "ZEITPUNKT_AUFTRAG_ERMITTELN
+
+
+*---------------------------------------------------------------------*
+*       FORM OLD_ENTRIES_PREPARE                                       *
+*---------------------------------------------------------------------*
+* Erzeugen alte Eintraege, wenn nichts veraendert wurde
+*---------------------------------------------------------------------*
+*  <--  Ymcvbak   Auftragkopftabelle
+*  <--  xmcvbuk   Auftragkopfstatustabelle
+*  <--  xmcvbap   Auftragpositionstabelle
+*  <--  xmcvbup   Auftragpositionsstatustabelle
+*  <--  xmcvbkd   Auftragpositions Kaufmmaenische Daten
+*----------------------------------------------------------------------*
+FORM old_entries_prepare TABLES xmcvbak STRUCTURE mcvbakb
+                                xmcvbuk STRUCTURE mcvbukb
+                                xmcvbap STRUCTURE mcvbapb
+                                xmcvbup STRUCTURE mcvbupb
+                                xmcvbkd STRUCTURE mcvbkdb.
+* VBAK
+  LOOP AT xmcvbak WHERE supkz EQ con_supkz_unv.
+    MOVE con_supkz_neu TO xmcvbak-supkz.
+    MODIFY xmcvbak INDEX sy-tabix.
+    MOVE con_supkz_alt TO xmcvbak-supkz.
+    APPEND xmcvbak.
+  ENDLOOP.
+* VBAP
+  LOOP AT xmcvbap WHERE supkz EQ con_supkz_unv.
+    MOVE con_supkz_neu TO xmcvbap-supkz.
+    MODIFY xmcvbap INDEX sy-tabix.
+    MOVE con_supkz_alt TO xmcvbap-supkz.
+    APPEND xmcvbap.
+  ENDLOOP.
+* VBUK
+  LOOP AT xmcvbuk WHERE supkz EQ con_supkz_unv.
+    MOVE con_supkz_neu TO xmcvbuk-supkz.
+    MODIFY xmcvbuk INDEX sy-tabix.
+    MOVE con_supkz_alt TO xmcvbuk-supkz.
+    APPEND xmcvbuk.
+  ENDLOOP.
+* VBUP
+  LOOP AT xmcvbup WHERE supkz EQ con_supkz_unv.
+    MOVE con_supkz_neu TO xmcvbup-supkz.
+    MODIFY xmcvbup INDEX sy-tabix.
+    MOVE con_supkz_alt TO xmcvbup-supkz.
+    APPEND xmcvbup.
+  ENDLOOP.
+* VBKD
+  LOOP AT xmcvbkd WHERE supkz EQ con_supkz_unv.
+    MOVE con_supkz_neu TO xmcvbkd-supkz.
+    MODIFY xmcvbkd INDEX sy-tabix.
+    MOVE con_supkz_alt TO xmcvbkd-supkz.
+    APPEND xmcvbkd.
+  ENDLOOP.
+* Sortieren XMC-Tabellen.
+  SORT xmcvbak BY supkz mandt vbeln.
+  SORT xmcvbuk BY supkz mandt vbeln.
+  SORT xmcvbap BY supkz mandt vbeln posnr.
+  SORT xmcvbup BY supkz mandt vbeln posnr.
+  SORT xmcvbkd BY supkz mandt vbeln posnr.
+ENDFORM.                    "OLD_ENTRIES_PREPARE
+
+*&---------------------------------------------------------------------*
+*&      Form  anreichern_daten
+*&---------------------------------------------------------------------*
+*       Ergaenzen der Auftragkopf und -positionsdaten um               *
+*       Retail- und Userdaten.                                         *
+*----------------------------------------------------------------------*
+*  -->  xmcvbak     Auftragkopftabelle
+*  -->  xmcvbuk     Auftragkopfstatustabelle
+*  -->  xmcvbap     Auftragpositionstabelle
+*  -->  xmcvbup     Auftragpositionsstatustabelle
+*  -->  xmcvbkd     Auftragposition Kaufmaennische Daten
+*  -->  ad_control  Steuerfelder
+*----------------------------------------------------------------------*
+FORM anreichern_daten TABLES xmcvbak STRUCTURE mcvbakb
+                             xmcvbuk STRUCTURE mcvbukb
+                             xmcvbap STRUCTURE mcvbapb
+                             xmcvbup STRUCTURE mcvbupb
+                             xmcvbkd STRUCTURE mcvbkdb
+                             mcinf   STRUCTURE mcsoinf
+                      USING  value(ad_control) STRUCTURE mccontrol.
+* nicht bei Simulation
+  CHECK ad_control-modus NE con_modus_sim.
+
+*  Definition Datenbereich Retail  Position
+  DATA: BEGIN OF xmcvbapwws.
+          INCLUDE STRUCTURE mcvbapwws.
+  DATA: END OF xmcvbapwws.
+* Definitions Datenbereich SAP BW Anreicherung
+  DATA: bw_retail.
+*  Definition Datenbereich Wareh.&Shipm. Position
+  DATA: BEGIN OF xmcvbapwhs.
+          INCLUDE STRUCTURE mcvbapwhs.
+  DATA: END OF xmcvbapwhs.
+*  Definition Datenbereich Userexit Position
+  DATA: BEGIN OF xmcvbapusr.
+          INCLUDE STRUCTURE mcvbapusr.
+  DATA: END OF xmcvbapusr.
+*  Definition Datenbereich Userexit Kopf
+  DATA: BEGIN OF xmcvbakusr.
+          INCLUDE STRUCTURE mcvbakusr.
+  DATA: END OF xmcvbakusr.
+*  Gewuenschte Datenerweiterungen
+  DATA: BEGIN OF aktiv,
+          retail,
+          wareh_shipm,
+          open_wkv,
+          bw_appl(3),
+          userexit,
+        END OF aktiv.
+*  Pruefen ob Anreicherungen gewuenscht sind
+  PERFORM pruefen_anreichern TABLES   mcinf
+                             CHANGING aktiv-retail
+                                      aktiv-wareh_shipm
+                                      aktiv-bw_appl
+                                      aktiv-userexit.
+  PERFORM absicherungsform_wkv(saplvkmp) CHANGING rc.
+  IF rc IS INITIAL.
+    aktiv-open_wkv = true.
+  ENDIF.
+*
+  CHECK NOT aktiv IS INITIAL.
+* Erzeugen alte Eintraege, wenn nichts veraendert wurde
+  PERFORM old_entries_prepare TABLES xmcvbak xmcvbuk xmcvbap xmcvbup
+                                     xmcvbkd.
+*  Kopfdaten
+  LOOP AT xmcvbak.
+    READ TABLE xmcvbuk WITH KEY
+        supkz = xmcvbak-supkz
+        mandt = xmcvbak-mandt
+        vbeln = xmcvbak-vbeln BINARY SEARCH.
+*     Anreicherung Userexit-Daten VBAK
+    IF NOT aktiv-userexit IS INITIAL.
+      READ TABLE xmcvbkd WITH KEY
+          supkz = xmcvbak-supkz
+          mandt = xmcvbak-mandt
+          vbeln = xmcvbak-vbeln
+          posnr = '000000'      BINARY SEARCH.
+      PERFORM userexit_kopf_ergaenzen USING xmcvbak xmcvbuk
+                                            xmcvbkd ad_control
+                                   CHANGING xmcvbakusr.
+      MOVE-CORRESPONDING xmcvbakusr TO xmcvbak.
+      MODIFY xmcvbak.
+    ENDIF.
+*   Position
+    READ TABLE xmcvbap WITH KEY
+       supkz = xmcvbak-supkz
+       mandt = xmcvbak-mandt
+       vbeln = xmcvbak-vbeln BINARY SEARCH.
+    IF sy-subrc EQ 0.
+      LOOP AT xmcvbap FROM sy-tabix.
+        IF xmcvbap-supkz NE xmcvbak-supkz
+        OR xmcvbap-mandt NE xmcvbak-mandt
+        OR xmcvbap-vbeln NE xmcvbak-vbeln.
+          EXIT.
+        ENDIF.
+*
+        READ TABLE xmcvbup WITH KEY
+           mandt = xmcvbap-mandt
+           supkz = xmcvbap-supkz
+           vbeln = xmcvbap-vbeln
+           posnr = xmcvbap-posnr BINARY SEARCH.
+*
+        READ TABLE xmcvbkd WITH KEY
+           supkz = xmcvbak-supkz
+           mandt = xmcvbak-mandt
+           vbeln = xmcvbak-vbeln
+           posnr = xmcvbap-posnr BINARY SEARCH.
+        IF sy-subrc NE 0.
+          READ TABLE xmcvbkd WITH KEY
+             supkz = xmcvbak-supkz
+             mandt = xmcvbak-mandt
+             vbeln = xmcvbak-vbeln
+             posnr = '000000' BINARY SEARCH.
+        ENDIF.
+*       Anreicherung Retail-Daten Position
+        IF NOT aktiv-retail IS INITIAL.
+          PERFORM retail_pos_ergaenzen
+                          USING xmcvbak xmcvbuk xmcvbap xmcvbup
+                                xmcvbkd ad_control
+                          CHANGING xmcvbapwws
+                                   xmcvbapusr.
+          MOVE-CORRESPONDING xmcvbapwws TO xmcvbap.
+          MOVE-CORRESPONDING xmcvbapusr TO xmcvbap.
+        ENDIF.
+*       Anreicherung Warehouse&Shipment-Daten Position
+        IF NOT aktiv-wareh_shipm IS INITIAL.
+          PERFORM wareh_shipm_pos_ergaenzen
+                        USING    xmcvbak xmcvbuk
+                                 xmcvbap xmcvbup
+                                 xmcvbkd ad_control
+                        CHANGING xmcvbapwhs.
+          MOVE-CORRESPONDING xmcvbapwhs TO xmcvbap.
+        ENDIF.
+*       Anreichern Daten SAP BW per BTE
+        IF NOT aktiv-bw_appl IS INITIAL.
+          CALL FUNCTION 'OUTBOUND_CALL_01000410_P'
+            EXPORTING
+              xmcvbak    = xmcvbak
+              xmccontrol = ad_control
+              bw_appl    = aktiv-bw_appl
+            CHANGING
+              xmcvbap    = xmcvbap.
+        ENDIF.
+*       Anreicherung Userexit-Daten Position
+        IF NOT aktiv-userexit IS INITIAL.
+          PERFORM userexit_pos_ergaenzen
+                        USING xmcvbak xmcvbuk xmcvbap xmcvbup
+                              xmcvbkd ad_control
+                        CHANGING xmcvbapusr.
+          MOVE-CORRESPONDING xmcvbapusr TO xmcvbap.
+        ENDIF.
+*       Anreicherung WKV-Daten Position
+        IF NOT aktiv-open_wkv IS INITIAL AND
+           NOT xmcvbap-abfor IS INITIAL.
+          PERFORM wkv_pos_ergaenzen
+                        USING    xmcvbak xmcvbuk
+                                 xmcvbap xmcvbup
+                                 xmcvbkd ad_control
+                        CHANGING xmcvbapusr.
+          MOVE-CORRESPONDING xmcvbapusr TO xmcvbap.
+        ENDIF.
+*
+        MODIFY xmcvbap.
+      ENDLOOP.
+    ENDIF.
+*   Warehouse&Shipment Belegende-Verarbeitung
+    IF NOT aktiv-wareh_shipm IS INITIAL.
+      PERFORM wareh_shipm_belegende USING xmcvbak-vbeln.
+    ENDIF.
+  ENDLOOP.
+ENDFORM.                    "ANREICHERN_DATEN
+
+*&---------------------------------------------------------------------*
+*&      Form  Pruefen_Anreichern
+*&---------------------------------------------------------------------*
+*       Pruefen ob
+*       - Anreicherung für Retail
+*       - Anreicherung für Warehouse&Shipment notwendig
+*       - Userexitmodule vorhanden
+*----------------------------------------------------------------------*
+*  <--  Retail             Anreicherung für Retail gewuenscht
+*  <--  Aktiv-Wareh_Shipm  Anreicherung für Wareh.&Shipment notwendig
+*  <--  Aktiv-Userexit     Userexits vorhanden
+*----------------------------------------------------------------------*
+FORM pruefen_anreichern TABLES   mcinf       STRUCTURE mcsoinf
+                        CHANGING retail      TYPE c
+                                 wareh_shipm TYPE c
+                                 bw_appl     TYPE csequence
+                                 userexit    TYPE c.
+* Konstanten
+  INCLUDE lv53ccon.
+* Var.
+  DATA: sdord LIKE tmcw-sdord.
+
+*** BEGIN DSEG ***
+  DATA: WA_TMCW LIKE TMCW.
+
+  IF TMCW_READ_DB IS INITIAL.
+*   ..Lese Mandanteneintrag ob WWS-Anreicherung gewuenscht
+    SELECT SINGLE * FROM TMCW CLIENT SPECIFIED INTO WA_TMCW
+                    WHERE MANDT EQ SY-MANDT.
+    IF SY-SUBRC = 0.
+      TMCW_READ_DB = TMCW_DB_RA.       "DB read -> activ
+    ELSE.
+      TMCW_READ_DB = TMCW_DB_RN.       "DB read -> not activ
+    ENDIF.
+  ENDIF.
+
+  IF TMCW_READ_DB EQ TMCW_DB_RA.
+*** END DSEG ***
+
+*   Pruefen ob Retailanreicherung gewuenscht
+    CALL FUNCTION 'WIS_CHECK_ADD_CONTENTS_ACTIV'
+      IMPORTING
+        e_retail_order   = sdord
+      EXCEPTIONS
+        retail_not_activ = 1
+        OTHERS           = 2.
+*   Retail-Hauptschalter an + Anreicherung Auftrag?
+    IF SY-SUBRC = 0 AND NOT SDORD IS INITIAL.
+*     ja, dann anreichern für Retail
+      RETAIL = 'X'.
+    ELSE.
+      CLEAR RETAIL.
+    ENDIF.
+
+*** BEGIN DSEG ***
+  ELSE.
+    CLEAR retail.
+  ENDIF.
+*** END DSEG.
+
+* Pruefen ob Anreicherung für Warehouse&Shipment notwendig
+  CALL FUNCTION 'SD_WHS_CHECK_ENRICHMENT_ACTIV'
+    EXPORTING
+      i_call_from = call_from_customer_order
+    IMPORTING
+      e_activ     = wareh_shipm
+    TABLES
+      t_mcinf     = mcinf.
+
+* Pruefen ob Anreicherung für SAP BW erwünscht
+  CALL FUNCTION 'OUTBOUND_CALL_01000411_P'
+    IMPORTING
+      e_bw_appl      = bw_appl
+    EXCEPTIONS
+      no_appl_active = 1
+      no_funct_found = 2
+      OTHERS         = 3.
+  IF sy-subrc NE 0.
+    CLEAR bw_appl.
+  ENDIF.
+
+* Pruefen ob Userexits vorhanden
+  CALL FUNCTION 'MODX_FUNCTION_ACTIVE_CHECK'
+    EXPORTING
+      cprogname = 'SAPLMCS1'
+    IMPORTING
+      active    = userexit
+    EXCEPTIONS
+      not_found = 4.
+  IF sy-subrc EQ 4.
+    CLEAR userexit.
+  ENDIF.
+ENDFORM.                    "PRUEFEN_ANREICHERN
+
+*&---------------------------------------------------------------------*
+*&      Form  DELIVERY_SCHEDULE_DETERMINE
+*&---------------------------------------------------------------------*
+*       Abrufzustand alt ermitteln für LAB und FAB
+*----------------------------------------------------------------------*
+FORM delivery_schedule_determine TABLES t_mtp_vblb      STRUCTURE vblbvb
+                                 USING value(us_vbeln)     TYPE vbeln
+                                       value(us_posnr)     TYPE clike
+                                       value(us_abart_lab) TYPE clike
+                                       value(us_abart_fab) TYPE clike
+                                       value(us_abart_pab) TYPE clike.
+
+* Zustand alt des LAB übergeben
+  CALL FUNCTION 'SD_YVBLB_SELECT'
+    EXPORTING
+      i_document_number = us_vbeln
+      i_item_number     = us_posnr
+      i_type            = us_abart_lab
+    IMPORTING
+      e_yvblb           = t_mtp_vblb.
+  IF NOT t_mtp_vblb-posnr IS INITIAL.
+    APPEND t_mtp_vblb.
+  ELSE.
+* falls es keinen Zustand alt gibt, aktuellen Zustand übergeben
+    CALL FUNCTION 'SD_VBLB_SELECT'
+      EXPORTING
+        i_document_number = us_vbeln
+        i_item_number     = us_posnr
+        i_type            = us_abart_lab
+      IMPORTING
+        e_vblb            = t_mtp_vblb.
+    IF NOT t_mtp_vblb-posnr IS INITIAL.
+      APPEND t_mtp_vblb.
+    ENDIF.
+  ENDIF.
+* Zustand alt des FAB übergeben
+  CALL FUNCTION 'SD_YVBLB_SELECT'
+    EXPORTING
+      i_document_number = us_vbeln
+      i_item_number     = us_posnr
+      i_type            = us_abart_fab
+    IMPORTING
+      e_yvblb           = t_mtp_vblb.
+  IF NOT t_mtp_vblb-posnr IS INITIAL.
+    APPEND t_mtp_vblb.
+  ELSE.
+* falls es keinen Zustand alt gibt, aktuellen Zustand übergeben
+    CALL FUNCTION 'SD_VBLB_SELECT'
+      EXPORTING
+        i_document_number = us_vbeln
+        i_item_number     = us_posnr
+        i_type            = us_abart_fab
+      IMPORTING
+        e_vblb            = t_mtp_vblb.
+    IF NOT t_mtp_vblb-posnr IS INITIAL.
+      APPEND t_mtp_vblb.
+    ENDIF.
+  ENDIF.
+* Zustand alt des PAB übergeben
+  CALL FUNCTION 'SD_YVBLB_SELECT'
+    EXPORTING
+      i_document_number = us_vbeln
+      i_item_number     = us_posnr
+      i_type            = us_abart_pab
+    IMPORTING
+      e_yvblb           = t_mtp_vblb.
+  IF NOT t_mtp_vblb-posnr IS INITIAL.
+    APPEND t_mtp_vblb.
+  ELSE.
+* falls es keinen Zustand alt gibt, aktuellen Zustand übergeben
+    CALL FUNCTION 'SD_VBLB_SELECT'
+      EXPORTING
+        i_document_number = us_vbeln
+        i_item_number     = us_posnr
+        i_type            = us_abart_pab
+      IMPORTING
+        e_vblb            = t_mtp_vblb.
+    IF NOT t_mtp_vblb-posnr IS INITIAL.
+      APPEND t_mtp_vblb.
+    ENDIF.
+  ENDIF.
+
+ENDFORM.                    "DELIVERY_SCHEDULE_DETERMINE
+
+*&---------------------------------------------------------------------*
+*&      Form  retail_pos_ergaenzen                                     *
+*&---------------------------------------------------------------------*
+*       Ergaenzen der Fakturapositionsdaten um Retailinformationen     *
+*----------------------------------------------------------------------*
+*   ->  xmcvbak     Auftragkopf
+*   ->  xmcvbuk     Auftragkopf Statis
+*   ->  xmcvbap     Auftragposition
+*   ->  xmcvbup     Auftragposition Statis
+*  <-   xmcvbapwws  Retail Positionsdaten
+*  <-   xmcvbapusr  Retail Positionsdaten Warengr.-/Betriebshierarchie
+*---------------------------------------------------------------------*
+FORM retail_pos_ergaenzen USING xmcvbak STRUCTURE mcvbakb
+                                xmcvbuk STRUCTURE mcvbukb
+                                xmcvbap STRUCTURE mcvbapb
+                                xmcvbup STRUCTURE mcvbupb
+                                xmcvbkd STRUCTURE mcvbkdb
+                                xmccontrol STRUCTURE mccontrol
+                      CHANGING  xmcvbapwws STRUCTURE mcvbapwws
+                                xmcvbapusr STRUCTURE mcvbapusr.
+*   Anreichern Position um Retail-Daten
+  CALL FUNCTION 'WIS_ADD_CONTENTS_VBAP'
+    EXPORTING
+      xmcvbak    = xmcvbak
+      xmcvbap    = xmcvbap
+      xmcvbkd    = xmcvbkd
+      xmccontrol = xmccontrol
+    IMPORTING
+      xmcvbapwws = xmcvbapwws
+      xmcvbapusr = xmcvbapusr.
+ENDFORM.                    "RETAIL_POS_ERGAENZEN
+
+*---------------------------------------------------------------------*
+*       Form  WAREH_SHIPM_POS_ERGAENZEN
+*---------------------------------------------------------------------*
+*       Ergaenzen der Auftragpositionsdaten um Informationen
+*       der Anwendung Warehouse&Shipment
+*---------------------------------------------------------------------*
+*  -->  xmcvbak     Auftragkopf
+*  -->  xmcvbuk     Auftragkopf Statis
+*  -->  xmcvbap     Auftragposition
+*  -->  xmcvbup     Auftragposition Statis
+*  -->  xmcvbkd     Auftragposition Kaufmännische Daten
+*  -->  xmccontrol  LIS-Fortschreibung: Steuerparameter
+*  <--  xmcvbapwhs  Erweiterungen Wareh.&Shipm. Positionsdaten
+*----------------------------------------------------------------------*
+FORM wareh_shipm_pos_ergaenzen
+                 USING    xmcvbak    STRUCTURE mcvbakb
+                          xmcvbuk    STRUCTURE mcvbukb
+                          xmcvbap    STRUCTURE mcvbapb
+                          xmcvbup    STRUCTURE mcvbupb
+                          xmcvbkd    STRUCTURE mcvbkdb
+                          xmccontrol STRUCTURE mccontrol
+                 CHANGING xmcvbapwhs STRUCTURE mcvbapwhs.
+  CALL FUNCTION 'SD_WHS_ADD_CONTENTS_VBAP'
+    EXPORTING
+      xmcvbak    = xmcvbak
+      xmcvbuk    = xmcvbuk
+      xmcvbkd    = xmcvbkd
+      xmcvbap    = xmcvbap
+      xmcvbup    = xmcvbup
+      xmccontrol = xmccontrol
+    IMPORTING
+      xmcvbapwhs = xmcvbapwhs.
+ENDFORM.                               "WAREH_SHIPM_POS_ERGAENZEN
+
+*---------------------------------------------------------------------*
+*       Form  WAREH_SHIPM_BELEGENDE
+*---------------------------------------------------------------------*
+*       Belegende-Verarbeitung Warehouse&Shipment
+*---------------------------------------------------------------------*
+*  -->  wsb_vbeln  Belegnummer
+*---------------------------------------------------------------------*
+FORM wareh_shipm_belegende USING wsb_vbeln LIKE mcvbak-vbeln.
+  CALL FUNCTION 'SD_WHS_END_OF_DOCUMENT_VIS'
+    EXPORTING
+      i_vbeln = wsb_vbeln.
+ENDFORM.                               "wareh_shipm_belegende
+
+*&---------------------------------------------------------------------*
+*&      Form  Userexit_Kopf_ergaenzen
+*&---------------------------------------------------------------------*
+*       Ergaenzen der Auftragpositionsdaten um Userexitinformationen   *
+*----------------------------------------------------------------------*
+*  -->  xmcvbak     Auftragkopf
+*  -->  xmcvbuk     Auftragkopf Status
+*  -->  uke_control Steuerfelder
+*  <--  xmcvbakusr  Userexiterweiterungen Kopfdaten
+*----------------------------------------------------------------------*
+FORM userexit_kopf_ergaenzen USING xmcvbak STRUCTURE mcvbakb
+                                   xmcvbuk STRUCTURE mcvbukb
+                                   xmcvbkd STRUCTURE mcvbkdb
+                                value(uke_control) STRUCTURE mccontrol
+                       CHANGING xmcvbakusr STRUCTURE mcvbakusr.
+
+  CALL CUSTOMER-FUNCTION '001'
+    EXPORTING  i_xmcvbak    = xmcvbak
+               i_xmcvbuk    = xmcvbuk
+               i_xmcvbkd    = xmcvbkd
+               i_control    = uke_control
+    IMPORTING  e_xmcvbakusr = xmcvbakusr.
+
+ENDFORM.                    "USEREXIT_KOPF_ERGAENZEN
+
+
+*&---------------------------------------------------------------------*
+*&      Form  Userexit_Pos_ergaenzen
+*&---------------------------------------------------------------------*
+*       Ergaenzen der Auftragpositionsdaten um Userexitinformationen   *
+*----------------------------------------------------------------------*
+*  -->  xmcvbak     Auftragkopf
+*  -->  xmcvbuk     Auftragkopf Statis
+*  -->  xmcvbap     Auftragposition
+*  -->  xmcvbup     Auftragposition Statis
+*  -->  upe_control Steuerfelder
+*  <--  xmcvbapusr  Userexiterweiterungen Positionsdaten
+*----------------------------------------------------------------------*
+FORM userexit_pos_ergaenzen USING xmcvbak STRUCTURE mcvbakb
+                                  xmcvbuk STRUCTURE mcvbukb
+                                  xmcvbap STRUCTURE mcvbapb
+                                  xmcvbup STRUCTURE mcvbupb
+                                  xmcvbkd STRUCTURE mcvbkdb
+                                  value(upe_control) STRUCTURE mccontrol
+                      CHANGING xmcvbapusr STRUCTURE mcvbapusr.
+
+  CALL CUSTOMER-FUNCTION '002'
+    EXPORTING  i_xmcvbak    = xmcvbak
+               i_xmcvbuk    = xmcvbuk
+               i_xmcvbap    = xmcvbap
+               i_xmcvbup    = xmcvbup
+               i_xmcvbkd    = xmcvbkd
+               i_control    = upe_control
+    IMPORTING  e_xmcvbapusr = xmcvbapusr.
+
+ENDFORM.                    "USEREXIT_POS_ERGAENZEN
+
+*---------------------------------------------------------------------*
+*       FORM VBEPD_FUELLEN                                            *
+*---------------------------------------------------------------------*
+*       ........                                                      *
+*---------------------------------------------------------------------*
+*  -->  US_XVBEP                                                      *
+*  -->  CH_XMCVBEP                                                    *
+*---------------------------------------------------------------------*
+FORM vbepd_fuellen USING    us_xvbep   STRUCTURE vbepvb
+                   CHANGING ch_xmcvbep STRUCTURE mcvbepb.
+  MOVE-CORRESPONDING vbepd TO ch_xmcvbep.
+  MOVE us_xvbep-swmeng     TO ch_xmcvbep-swmeng.
+  MOVE us_xvbep-erdata     TO ch_xmcvbep-erdata.
+  MOVE us_xvbep-aedata     TO ch_xmcvbep-aedata.
+ENDFORM.                    "VBEPD_FUELLEN
+
+*&---------------------------------------------------------------------*
+*&      Form  WKV_POS_ERGAENZEN
+*&---------------------------------------------------------------------*
+*       Ergaenzen der Auftragpositionsdaten um WKV-Informationen       *
+*----------------------------------------------------------------------*
+*  -->  xmcvbak     Auftragkopf
+*  -->  xmcvbuk     Auftragkopf Statis
+*  -->  xmcvbap     Auftragposition
+*  -->  xmcvbup     Auftragposition Statis
+*  -->  upe_control Steuerfelder
+*  <--  xmcvbapusr  Userexiterweiterungen Positionsdaten
+*----------------------------------------------------------------------*
+FORM wkv_pos_ergaenzen      USING xmcvbak STRUCTURE mcvbakb
+                                  xmcvbuk STRUCTURE mcvbukb
+                                  xmcvbap STRUCTURE mcvbapb
+                                  xmcvbup STRUCTURE mcvbupb
+                                  xmcvbkd STRUCTURE mcvbkdb
+                                  value(upe_control) STRUCTURE mccontrol
+                         CHANGING xmcvbapusr STRUCTURE mcvbapusr.
+  CALL FUNCTION 'BF_FUNCTIONS_FIND'
+    EXPORTING
+      i_event       = con_event_vis_order
+    TABLES
+      t_fmrfc       = fmtab
+    EXCEPTIONS
+      nothing_found = 4.
+  IF sy-subrc = 4.
+    EXIT.
+  ELSE.
+    LOOP AT fmtab.
+      CALL FUNCTION fmtab-funct
+        EXPORTING
+          status              = xmcvbap-supkz
+          order_number        = xmcvbak-vbeln
+          order_item_number   = xmcvbap-posnr
+        CHANGING
+          contract_order_data = xmcvbapusr
+        EXCEPTIONS
+          OTHERS              = 0.
+    ENDLOOP.
+  ENDIF.
+ENDFORM.                    "WKV_POS_ERGAENZEN
+
+
+
+*&---------------------------------------------------------------------*
+*&      Form  OUTBOUND_CALL_00506002_E
+*&---------------------------------------------------------------------*
+* CMDS - Collaborative Management of Delivery Schedules
+*
+*       Outbound call after order statistics update
+*       Usage:
+*       1. Transfer of S073 data to APO (CMDS processing)
+*----------------------------------------------------------------------*
+*      -->P_MCINF
+*      -->P_XMCKOMV
+*      -->P_XMCVBAK
+*      -->P_XMCVBAP
+*      -->P_XMCVBAPF
+*      -->P_XMCVBEP
+*      -->P_XMCVBFA
+*      -->P_XMCVBKD
+*      -->P_XMCVBPA
+*      -->P_XMCVBUK
+*      -->P_XMCVBUP
+*      -->P_XMCFPLT
+*      -->P_CONTROL
+*      -->P_ZEITP
+*----------------------------------------------------------------------*
+FORM outbound_call_00506002_e TABLES   p_mcinf    STRUCTURE mcsoinf
+                                       p_xmckomv  STRUCTURE mckomvb
+                                       p_xmcvbak  STRUCTURE mcvbakb
+                                       p_xmcvbap  STRUCTURE mcvbapb
+                                       p_xmcvbapf STRUCTURE mcvbafb
+                                       p_xmcvbep  STRUCTURE mcvbepb
+                                       p_xmcvbfa  STRUCTURE mcvbfab
+                                       p_xmcvbkd  STRUCTURE mcvbkdb
+                                       p_xmcvbpa  STRUCTURE mcvbpab
+                                       p_xmcvbuk  STRUCTURE mcvbukb
+                                       p_xmcvbup  STRUCTURE mcvbupb
+                                       p_xmcfplt  STRUCTURE mcfpltb
+                              USING    p_control  LIKE      mccontrol
+                                       p_zeitp    LIKE      tmc2f-zeitp.
+
+  CALL FUNCTION 'OUTBOUND_CALL_00506002_E'
+    EXPORTING
+      is_control  = p_control
+      iv_zeitp    = p_zeitp
+    TABLES
+      it_mcinf    = p_mcinf
+      it_xmckomv  = p_xmckomv
+      it_xmcvbak  = p_xmcvbak
+      it_xmcvbap  = p_xmcvbap
+      it_xmcvbapf = p_xmcvbapf
+      it_xmcvbep  = p_xmcvbep
+      it_xmcvbfa  = p_xmcvbfa
+      it_xmcvbkd  = p_xmcvbkd
+      it_xmcvbpa  = p_xmcvbpa
+      it_xmcvbuk  = p_xmcvbuk
+      it_xmcvbup  = p_xmcvbup
+      it_xmcfplt  = p_xmcfplt.
+
+ENDFORM.                    " OUTBOUND_CALL_00506002_E
